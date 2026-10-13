@@ -367,6 +367,8 @@ def kipp_plot(kipp_args, axis=None):
 
     if axis is None:
         fig, axis = plt.subplots()
+    else:
+        fig = axis.figure
 
     xyz_data = kipp_args.xyz_data
 
@@ -483,9 +485,10 @@ def kipp_plot(kipp_args, axis=None):
         axis.set_xlim(kipp_args.xlims)
 
     if kipp_args.show_plot:
-        plt.show()
+        fig.show()
     if kipp_args.save_file:
-        plt.savefig(kipp_args.save_filename)
+        fig.tight_layout()
+        fig.savefig(kipp_args.save_filename)
 
     KippPlot = namedtuple('KippPlot', 'contour_plot histories xlims')
 
