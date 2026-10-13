@@ -1,16 +1,46 @@
+"""Read MESA output and construct contour grids and mixing-region boundaries."""
+
 import re
 from collections import namedtuple
 
+import mesa_data as md
 import numpy as np
 from matplotlib.path import Path
 
-import mesa_data as md
 
-
-# Someday, if I remember, I might explain how this works
-# Class used to store mixing zones
 class ZoneBlock:
+    """A rectangular piece of a mixing region between two history samples.
+
+    The mixing type and vertical bounds at the current sample describe the
+    entire interval from the previous x coordinate to the current one. Bounds
+    are enclosed mass, radius, or their normalized equivalents.
+
+    Parameters
+    ----------
+    min_x, max_x : float
+        Previous and current x coordinates. Despite their names, they need
+        not increase after an axis transform.
+    min_y, max_y : float
+        Bottom and top of the mixing layer.
+
+    Attributes
+    ----------
+    vertices : list of ZoneVertex
+        Original corners ordered lower left, upper left, upper right,
+        lower right.
+
+    Notes
+    -----
+    ``vertices`` contains four linked corners in the order lower left, upper
+    left, upper right, lower right. Initially they form a closed ring. As a
+    :class:`Zone` grows, it rewires links between neighboring blocks so that
+    following ``next_vertex`` traces the combined boundary instead of each
+    rectangle separately. The list retains the original corner objects even
+    after their links change.
+    """
+
     def __init__(self, min_x, max_x, min_y, max_y):
+        """Create the corners and link them into a circular doubly linked list."""
         # vertices for this block, in the order:
         # -lower left
         # -upper left
@@ -25,14 +55,66 @@ class ZoneBlock:
             vertex.next_vertex = self.vertices[(i+1) % 4]
 
 class ZoneVertex:
+    """A boundary node with coordinates, neighbor links, and a traversal flag.
+
+    Parameters
+    ----------
+    coords : tuple of float
+        Boundary coordinates ``(x, y)``.
+
+    Attributes
+    ----------
+    coords : tuple of float
+        Boundary coordinates ``(x, y)``.
+    prev_vertex, next_vertex : ZoneVertex or None
+        Neighboring boundary nodes; initially unlinked.
+    checked : bool
+        Whether :meth:`Zone.get_path` has visited the node.
+    """
+
     def __init__(self, coords):
+        """Store an ``(x, y)`` pair in an unlinked, unvisited node."""
         self.coords = coords
         self.prev_vertex = None
         self.next_vertex = None
         self.checked = False
 
 class Zone:
+    """Accumulate connected blocks of one MESA mixing type into a boundary.
+
+    Parameters
+    ----------
+    block : ZoneBlock
+        Initial block in the current interval.
+    mix_type : int
+        MESA mixing code for the zone.
+
+    Attributes
+    ----------
+    old_blocks : list of ZoneBlock
+        Archived blocks from earlier intervals.
+    last_blocks : list of ZoneBlock
+        Blocks from the preceding interval, eligible for extension.
+    new_blocks : list of ZoneBlock
+        Blocks in the interval being built.
+    mix_type : int
+        MESA mixing code shared by the zone's blocks.
+    open : bool
+        Initialized to True; currently unused by the sweep algorithm.
+
+    Notes
+    -----
+    Blocks are grouped by their position in the sweep through history:
+    ``new_blocks`` belong to the interval being built, ``last_blocks`` to the
+    preceding interval, and ``old_blocks`` to earlier intervals. Only the
+    preceding interval is considered when attaching a new block. Multiple
+    blocks can belong to a zone at one interval, allowing regions to split
+    and rejoin. Boundary links, rather than a geometric union operation,
+    record these connections for conversion to a Matplotlib path.
+    """
+
     def __init__(self, block, mix_type):
+        """Start a zone with one new :class:`ZoneBlock` and its mixing code."""
         self.old_blocks = []
         self.last_blocks = []
         self.new_blocks = [block]
@@ -40,6 +122,37 @@ class Zone:
         self.open = True
 
     def extend(self, upper_vertex, lower_vertex, mix_type):
+        """Splice a new block's left edge into matching previous blocks.
+
+        Parameters
+        ----------
+        upper_vertex : ZoneVertex
+            Upper-left corner of the incoming block.
+        lower_vertex : ZoneVertex
+            Lower-left corner of the incoming block.
+        mix_type : int
+            MESA mixing code of the incoming block.
+
+        Returns
+        -------
+        bool
+            Whether a previous block of the same mixing type has an
+            overlapping or touching vertical interval.
+
+        Notes
+        -----
+        The caller supplies a block in the adjacent x interval; this method
+        checks vertical overlap only. For each match, it connects the old
+        upper-right corner to the incoming upper boundary and the incoming
+        lower boundary to the old lower-right boundary. This bypasses the
+        shared edge while retaining any vertical step between the layers.
+        If the incoming layer spans several previous blocks, the lower
+        connection is carried forward to splice those boundaries together.
+
+        This mutates vertex links but does not append the block to
+        ``new_blocks``. The caller does that and merges any zones bridged by
+        the incoming block.
+        """
         if mix_type != self.mix_type:
             return False
         found = False
@@ -69,11 +182,38 @@ class Zone:
         return found
 
     def switch_new_blocks(self):
+        """Advance one interval, archiving old candidates for extension.
+
+        Notes
+        -----
+        Move ``last_blocks`` into ``old_blocks``, promote ``new_blocks`` to
+        ``last_blocks``, and clear ``new_blocks``. An empty ``last_blocks``
+        afterward means the zone did not continue into this interval.
+        """
         self.old_blocks.extend(self.last_blocks)
         self.last_blocks = self.new_blocks
         self.new_blocks = []
 
     def get_path(self):
+        """Consume the completed boundary links to build a Matplotlib Path.
+
+        Returns
+        -------
+        matplotlib.path.Path
+            Compound path containing the closed boundary loops.
+
+        Notes
+        -----
+        Include ``last_blocks`` with the archived blocks, then follow each
+        unvisited chain of ``next_vertex`` links as a closed subpath. Separate
+        loops, including those around holes, share a single compound path.
+        The coordinate supplied with ``CLOSEPOLY`` is a placeholder ignored
+        by Matplotlib.
+
+        Call only after all blocks have been promoted out of ``new_blocks``.
+        This method appends to ``old_blocks`` and marks vertices checked;
+        it is a finalization step, not a repeatable accessor.
+        """
         self.old_blocks.extend(self.last_blocks)
         vertices = []
         coords = []
@@ -100,14 +240,59 @@ class Zone:
         return Path(coords, codes)
 
     def merge_zone(self, zone2):
+        """Collect another zone's blocks after a new block bridges the zones.
+
+        Parameters
+        ----------
+        zone2 : Zone
+            Zone whose blocks are added to this zone.
+
+        Notes
+        -----
+        The caller must first connect their boundaries with ``extend`` and
+        ensure that their mixing types agree. This method only combines the
+        three block lists; it neither rewires vertices nor clears ``zone2``.
+        The caller removes ``zone2`` from the active zones afterward.
+        """
         self.old_blocks.extend(zone2.old_blocks)
         self.last_blocks.extend(zone2.last_blocks)
         self.new_blocks.extend(zone2.new_blocks)
 
 
-# returns a list of matplotlib path objects with the mixing regions
 def get_mixing_zones(history_paths, kipp_args, xlims=None):
-    """Get mixing zones and mass borders from history.data files"""
+    """Construct mixing-region paths and stellar surface coordinates.
+
+    Parameters
+    ----------
+    history_paths : sequence of str
+        History file paths in the order to concatenate.
+    kipp_args : mkipp.KippArgs
+        Plot settings, including axis transforms, data cleaning, extra
+        history columns, normalization, and thickness tolerances.
+    xlims : tuple of float, optional
+        Inclusive limits in transformed x coordinates used to restrict
+        block construction, retaining neighboring intervals at the
+        boundaries. Paths are not clipped to the exact limits.
+
+    Returns
+    -------
+    MixingZones
+        Named tuple with ``zones`` (Matplotlib paths), corresponding
+        ``mix_types``, transformed ``x_coords``, surface ``y_coords`` (mass,
+        radius, or one when normalized), and the loaded ``histories``.
+        Surface coordinates and histories retain the full input range even
+        when ``xlims`` restricts block construction.
+
+    Notes
+    -----
+    Each layer at sample i becomes a rectangle spanning samples i-1 to i.
+    Its upper boundary comes from ``mix_qtop_*`` or ``mix_relr_top_*``; its
+    lower boundary is the preceding layer's top, or zero for the first layer.
+    Layers with mixing codes 0 or -1, or below the thickness tolerance, are
+    skipped. Adjacent layers with the same mixing code are joined through
+    their overlapping vertical intervals into :class:`Zone` boundaries.
+
+    """
 
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
@@ -122,7 +307,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     mix_data = []
     histories = []
     for history_name in history_paths:
-        history = md.mesa_data(history_name, read_data = False)
+        history = md.MesaData(history_name, read_data = False)
         columns = []
         for key in history.columns:
             search_regex = "log_R|star_mass|model_number|star_age|.*core_mass|mix_type.*|"
@@ -251,6 +436,45 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
 
 
 def get_xyz_data(profile_paths, kipp_args, xlims=None):
+    """Interpolate a profile quantity onto a common vertical contour grid.
+
+    Parameters
+    ----------
+    profile_paths : sequence of str
+        Ordered MESA profile file paths.
+    kipp_args : mkipp.KippArgs
+        Plot settings defining the axes, units, x transform, vertical
+        resolution, and quantity extractor. The extractor is first queried
+        with ``return_data_columns=True`` to select input columns, then
+        called with each loaded profile to obtain values.
+    xlims : tuple of float, optional
+        Inclusive limits in transformed x coordinates. Immediate neighbors
+        of profiles inside the range are also kept to provide contour
+        coverage at the boundaries.
+
+    Returns
+    -------
+    XYZData
+        Named tuple containing ``xlims`` (the minimum and maximum selected
+        x coordinates) and ``X``, ``Y``, ``Z`` arrays of shape
+        ``(yresolution, number_of_selected_profiles)``. Each column
+        represents one profile. With no selected profiles, the arrays have
+        zero columns and the returned limits are ``(inf, -inf)``.
+
+    Notes
+    -----
+    Read headers first to determine the global vertical extent and select
+    profiles, then load the required columns. The extent uses all readable
+    headers, including those outside ``xlims``. Reverse the profile arrays
+    from surface-to-center order before interpolating with ``np.interp``.
+    Values outside each profile's coordinate range use endpoint values;
+    points above the stellar surface are not masked here.
+
+    With ``yaxis_normalize``, the common grid spans zero to one, but the
+    profile mass/radius coordinates are currently passed to interpolation
+    without normalization by their surface values.
+
+    """
 
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
@@ -276,7 +500,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     prof_include = [False] * len(profile_paths)
     for i, profile_name in enumerate(profile_paths):
         try:
-            prof = md.mesa_data(profile_name, only_read_header = True)
+            prof = md.MesaData(profile_name, only_read_header = True)
             if not kipp_args.yaxis_normalize:
                 if kipp_args.yaxis == "mass":
                     max_y = max(prof.header['star_mass'],max_y)
@@ -331,7 +555,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
         Y_data_array[j,:] = max_y * j / (kipp_args.yresolution-1)
     for i, profile_name in enumerate(profile_paths):
         try:
-            prof = md.mesa_data(profile_name, read_data = False)
+            prof = md.MesaData(profile_name, read_data = False)
             prof.read_data(columns)
         except Exception as e:
             print("Couldn't read profile " + profile_name, e)

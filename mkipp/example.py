@@ -41,7 +41,7 @@ plt.savefig("Kippenhahn3.png")
 fig = plt.figure()
 axis = plt.gca()
 #only need to read star_age column first
-history = mesa_data.mesa_data("LOGS/history.data", read_data_cols = ["star_age"])
+history = mesa_data.MesaData("LOGS/history.data", read_data_cols = ["star_age"])
 max_age = max(history.get("star_age"))
 kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(
         xaxis = "star_age",
@@ -145,7 +145,7 @@ bar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 #bar.ax.set_yticklabels(['0', '','2','','4','','6','','8',''])
 bar.set_label("$\\log_{10}|\\epsilon_{\\rm nuc}|$")
 
-history = mesa_data.mesa_data("LOGS/history.data", read_data_cols = ["star_age", "center_h1", "center_he4"])
+history = mesa_data.MesaData("LOGS/history.data", read_data_cols = ["star_age", "center_h1", "center_he4"])
 for i, center_h1 in enumerate(history.get("center_h1")):
     if center_h1 < 1e-3:
         age_tams = history.get("star_age")[i]/1e6

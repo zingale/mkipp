@@ -1,5 +1,9 @@
-"""
-Kippenhahn plotter based on SimpleMesaKippy.py and Kippy.py
+"""Create Kippenhahn diagrams from MESA history and profile output.
+
+Notes
+-----
+Based on SimpleMesaKippy.py and Kippy.py.
+
 Prehistory: SimpleMesaKippy.py, Author: Alfred Gautschy /23.VIII.2012
 
             Kippy.py, Author: Pablo Marchant /13.V.2013
@@ -20,23 +24,59 @@ Requirements: history.data and profiles.data containing
 """
 from collections import namedtuple
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import PathPatch
-
-import numpy as np
-
 import kipp_data as kipp
+import matplotlib.pyplot as plt
 import mesa_data as md
+import numpy as np
+from matplotlib.patches import PathPatch
 
 
 # Create contour levels array (TBD: Need to be improved)
 def get_levels_linear(lmin, lmax, n_levels):
+    """Generate evenly spaced contour levels around a data range.
+
+    Parameters
+    ----------
+    lmin, lmax : float
+        Minimum and maximum data values, with ``lmax > lmin``.
+    n_levels : int
+        Positive number of intervals used to set the spacing.
+
+    Returns
+    -------
+    numpy.ndarray
+        Levels from ``lmin - delta`` up to, but excluding, ``lmax + delta``,
+        where ``delta = (lmax - lmin) / n_levels``. Floating-point rounding
+        can affect the endpoint and count.
+    """
     delta = (lmax - lmin)/n_levels
     levels = np.arange(lmin-delta, lmax+delta, delta)
     return levels
 
 
 def get_levels_log(lmin, lmax, n_levels):
+    """Generate integer contour levels for logarithmic data.
+
+    Parameters
+    ----------
+    lmin : float
+        Minimum logarithmic data value; currently does not affect the result.
+    lmax : float
+        Maximum logarithmic data value.
+    n_levels : int
+        Requested number of levels; currently unused.
+
+    Returns
+    -------
+    range
+        Integers from zero through ``int(lmax) + 1``, inclusive. The range
+        is empty if its upper bound is negative.
+
+    Notes
+    -----
+    Input values are already logarithms. This function does not transform
+    data or generate logarithmically spaced values in linear units.
+    """
     lmax = int(lmax)+1
     lmin = int(round(lmin, 2))-1
     levels = range(0, lmax+1)
@@ -45,6 +85,25 @@ def get_levels_log(lmin, lmax, n_levels):
 
 def default_extractor(identifier, log10_on_data, prof,
                       return_data_columns=False):
+    """Extract a profile column or report the column required to read it.
+
+    Parameters
+    ----------
+    identifier : str
+        Profile column name.
+    log10_on_data : bool
+        If True, return ``log10(abs(data) + 1e-99)``.
+    prof : mesa_data.mesa_data or None
+        Loaded profile. May be None when requesting column names.
+    return_data_columns : bool, optional
+        Return required column names instead of data. Default is False.
+
+    Returns
+    -------
+    numpy.ndarray or list of str
+        Extracted values, optionally transformed, or ``[identifier]`` when
+        ``return_data_columns`` is True.
+    """
     if return_data_columns:
         return [identifier]
     if log10_on_data:
@@ -52,8 +111,119 @@ def default_extractor(identifier, log10_on_data, prof,
     return prof.get(identifier)
 
 
-# properties of the plotter
 class KippArgs:
+    """Configure a Kippenhahn plot and load its profile and mixing data.
+
+    Parameters
+    ----------
+    logs_dirs : sequence of str, optional
+        MESA LOGS directories used to discover input files. Defaults to
+        ``['LOGS']``.
+    profile_paths : sequence of str, optional
+        Ordered profile paths. If None or empty, discover them from
+        ``profiles.index`` in each LOGS directory.
+    history_paths : sequence of str, optional
+        History paths in concatenation order. If None or empty, use
+        ``history.data`` in each LOGS directory.
+    clean_data : bool, optional
+        Remove history rows superseded by backups or restarts. Default is
+        True.
+    extra_history_cols : sequence of str, optional
+        Additional history columns to load. Defaults to no extra columns.
+    identifier : str, optional
+        Quantity identifier passed to the extractor and used as the colorbar
+        label. The default extractor treats it as a column name. Defaults
+        to ``'eps_nuc'``.
+    extractor : callable, optional
+        Function called as ``extractor(identifier, log10_on_data, prof)``
+        to obtain an array of profile values. It must also accept
+        ``prof=None, return_data_columns=True`` and return required column
+        names. Defaults to `default_extractor`.
+    log10_on_data : bool, optional
+        Request logarithmic values from the extractor. Default is True.
+        The default extractor computes ``log10(abs(data) + 1e-99)``.
+    contour_colormap : matplotlib.colors.Colormap, optional
+        Colormap for the filled contours. Defaults to ``'Blues'``.
+    levels : array_like, optional
+        Explicit, increasing contour levels. If None or empty, generate
+        levels from the extracted data.
+    log_levels : bool, optional
+        Use integer levels for logarithmic data when levels are generated.
+        Default is True. This setting does not transform the data.
+    num_levels : int, optional
+        Number of intervals used by the linear level generator. Defaults
+        to 8; the logarithmic level generator currently ignores this value.
+    xaxis : {'model_number', 'star_age'}, optional
+        Horizontal coordinate. Defaults to ``'model_number'``.
+    xaxis_divide : float, optional
+        Nonzero divisor applied before the x-axis transform. Defaults to
+        1.0. Certain ``time_units`` override it when plotting ``star_age``.
+    time_units : {'yr', '1000 yr', 'Myr', 'Gyr'}, optional
+        Time-axis label, defaulting to ``'Myr'``. For ``star_age``, the last
+        three choices override the divisor with 1000, 1e6, and 1e9,
+        respectively. ``'yr'`` retains ``xaxis_divide``.
+    function_on_xaxis : callable, optional
+        Transform applied after division. Must accept scalar profile ages
+        or model numbers and NumPy arrays from histories. Defaults to the
+        identity function.
+    yaxis : {'mass', 'radius'}, optional
+        Vertical coordinate, in solar masses or solar radii. Defaults to
+        ``'mass'``.
+    yaxis_normalize : bool, optional
+        Use a unit surface coordinate for mixing regions and a contour grid
+        spanning zero to one. Default is False. See the normalization
+        limitation in Notes.
+    show_conv, show_therm, show_semi, show_over : bool, optional
+        Display convection, thermohaline mixing, semiconvection, and
+        overshooting boundaries, respectively. Each defaults to True.
+    show_rot : bool, optional
+        Display rotational mixing boundaries. Default is False.
+    core_masses : sequence of {'He', 'C', 'O'}, optional
+        Core masses to overlay when ``yaxis='mass'``. Defaults to all three;
+        an empty sequence suppresses them.
+    yresolution : int, optional
+        Number of vertical interpolation points; must be at least two.
+        Defaults to 1000.
+    mass_tolerance, radius_tolerance : float, optional
+        Minimum mixing-layer thickness as a fraction of the surface
+        coordinate, using the tolerance for the selected y axis. Each
+        defaults to 1e-7.
+    decorate_plot : bool, optional
+        Add axis labels and a colorbar. Default is True.
+    show_plot : bool, optional
+        Call ``pyplot.show()`` after plotting. Default is False.
+    save_file : bool, optional
+        Save the current pyplot figure after the optional show call.
+        Default is True.
+    save_filename : str, optional
+        Output filename; its extension determines the format. Defaults to
+        ``'Kippenhahn.png'``.
+    xlims : tuple of float, optional
+        Inclusive limits in transformed x coordinates, used for data
+        selection and displayed axis limits. Neighboring samples are kept
+        for boundary coverage. Defaults to the full range.
+
+    Attributes
+    ----------
+    xyz_data : namedtuple
+        Interpolated profile data with fields ``xlims``, ``X``, ``Y``, and
+        ``Z``, returned by `kipp_data.get_xyz_data`.
+    mixing_zones : namedtuple
+        Mixing-region paths and history data with fields ``zones``,
+        ``mix_types``, ``x_coords``, ``y_coords``, and ``histories``, returned
+        by `kipp_data.get_mixing_zones`.
+
+    Notes
+    -----
+    All parameters are keyword-only and are stored as instance attributes,
+    with defaults resolved as described above. Construction immediately
+    reads the input files and computes both data products; changing input
+    settings afterward does not recompute them.
+
+    Normalization is currently incomplete: profile interpolation still uses
+    unnormalized mass/radius coordinates, and core-mass overlays remain in
+    solar masses even when ``yaxis_normalize`` is True.
+    """
     def __init__(self, *,
                  logs_dirs=None,
                  profile_paths=None,
@@ -87,55 +257,7 @@ class KippArgs:
                  save_file=True,
                  save_filename="Kippenhahn.png",
                  xlims=None):
-        """Initializes properties for a Kippenhahn plot
-
-        Note:
-            All arguments are optional, if not provided defaults are assigned
-
-        Args:
-            logs_dir (List[str]): List of paths to MESA LOGS directories. If profile_paths and
-                history_paths are not provided, they are automatically generated from logs_dir.
-            profile_paths (List[str]): List of paths to MESA profile files.
-            history_paths (List[str]): List of paths to MESA history files.
-            clean_data (bool): Clean history files in case of redos. If data has no redos,
-                a small performance gain can be had by setting this to False.
-            extra_history_cols (List[str]): Additional column names to be extracted from history files.
-            identifier (str): String used as identifier of data to plot. If not using any custom
-                extractors this is simply the column name in the profile file that will be extracted.
-                Default uses eps_nuc.
-            extractor (function): Custom function to read out profile data. Allows to extract
-                data that is not included by default but can be computed from the given profiles
-            log10_on_data (bool): Determines if log10(abs()) is applied to profile data
-            contour_colormap (matplotlib.cm): matplotlib color map used to plot contours
-            levels (List): List of fixed levels for contour plot (int or float)
-            log_levels (bool): if levels is an empty list then they are auto-generated. This
-                variable specifies if the date is the log of a quantity or not, in order to
-                produce discrete integer levels.
-            num_levels (int): Number of automatically generated levels
-            xaxis (str): variable for the xaxis, either "model_number" or "star_age"
-            xaxis_divide (float): divide xaxis by this value
-            time_units (str): When using xaxis = "star_age" this specifies the unit of time
-                and sets the value of xaxis_divide. Options are "yr", "Myr" and "Gyr"
-            function_on_xaxis (function): after dividing by xaxis_divide, this function is applied
-                to all xvalues of the data
-            yaxis (str): Quantity plotted in the yaxis. Either "mass" or "radius"
-            yaxis_normalize (bool): If True Normalize yaxis at each point using total mass/total radius
-            show_conv, show_therm, show_semi, show_over, show_rot (bool): Specifies whether or
-                certain mixing regions are displayed.
-            core_masses (List(str)): Strings with core masses to plot. Options are "He", "C" and "O".
-                Only for yaxis=mass
-            yresolution (int): resolution for contour plotting
-            mass_tolerance (float): ignore mixing regions smaller than this in solar masses. Ignored
-                if yaxis="radius"
-            radius_tolerance (float): ignore mixing regions smaller than this in solar radii. Ignored
-                if yaxis="mass"
-            decorate_plot (bool): If True, then axis labels are included.
-            show_plot (bool): If True, pyplot.show() is ran at the end
-            save_file (bool): If True, plot is saved after pyplot.show()
-            save_filename (str): Filename to save plot. Extension determines filetype.
-            xlims (Tuple(float)): range in x to which the loaded data is restricted. By default all data is loaded
-
-        """
+        """Store plot settings and prepare profile and mixing-region data."""
 
         if logs_dirs is None:
             logs_dirs = ['LOGS']
@@ -204,9 +326,34 @@ class KippArgs:
 
 
 def kipp_plot(kipp_args, axis=None):
-    """Plot a Kippenhahn diagram into the matplotlib axis given. No
-    decoration done (i.e. axis labeling or colorbars). Returns
+    """Draw profile contours, mixing boundaries, and stellar structure.
 
+    Parameters
+    ----------
+    kipp_args : KippArgs
+        Prepared data and plot settings. Controls contour levels, visible
+        mixing types, core-mass overlays, labels, display, and file output.
+    axis : matplotlib.axes.Axes, optional
+        Axes on which to draw. If None, create a figure and axes.
+
+    Returns
+    -------
+    KippPlot
+        Named tuple containing ``contour_plot`` (the contour set returned
+        by ``Axes.contourf``), ``histories`` (loaded ``mesa_data`` objects),
+        and ``xlims`` (the extent of the selected profile coordinates,
+        which can extend beyond the requested plotting limits).
+
+    Notes
+    -----
+    Mixing regions are drawn as unfilled, hatched patches over the profile
+    contours. A white fill covers contours above the stellar surface, and
+    selected core masses are overlaid for a mass axis. Axis labels and a
+    colorbar are added only when ``decorate_plot`` is True.
+
+    Display and file output use pyplot. In particular, ``save_file=True``
+    saves the current pyplot figure, which need not be the figure owning
+    a supplied ``axis``. File output occurs after the optional show call.
     """
 
     xaxis_divide = kipp_args.xaxis_divide

@@ -1,62 +1,120 @@
+"""Read selected columns from MESA text output and resolve profile paths."""
+
 from collections import OrderedDict
 
-import h5py
 import numpy as np
-import numpy.ma as ma
+from numpy import ma
 
 
-# class to extract a mesa data file.
-class mesa_data:
-    def __init__(self, history_file, only_read_header = False, read_data = True, read_data_cols = [],
-            clean_data = True, sample_every_n = 1, is_hdf5 = False):
+class MesaData:
+    """Read numeric headers and selected columns from a MESA output file.
+
+    Parameters
+    ----------
+    history_file : str or path-like
+        Path to a MESA history or profile text file.
+    only_read_header : bool, optional
+        Read only the global header, leaving the column mapping empty.
+        Takes precedence over ``read_data``. Default is False.
+    read_data : bool, optional
+        Load column values after reading the header and column mapping.
+        If False, defer loading until `read_data` is called. Default is True.
+    read_data_cols : list of str, optional
+        Columns to load. If None or empty, load all columns. The supplied
+        list may be modified to include ``model_number`` when available.
+    clean_data : bool, optional
+        Remove history rows superseded by later backups or restarts.
+        Default is True. Applies only when a ``model_number`` column exists.
+    sample_every_n : int, optional
+        Sampling interval, defaulting to 1. Currently not forwarded to
+        `read_data`, so this constructor argument has no effect. Pass it
+        directly to `read_data` to subsample rows.
+
+    Attributes
+    ----------
+    filename : str or path-like
+        Input file path.
+    header : dict of str to float
+        Numeric global header values. Known version, compiler, build, SDK,
+        date, and math-backend fields are omitted.
+    header_num : dict of str to int
+        Original zero-based positions of the retained header fields.
+    columns : dict of str to int
+        Data column names mapped to zero-based file column indices. Empty
+        when ``only_read_header`` is True.
+    read_columns : list of str
+        Unique loaded column names, in requested order. Created when data
+        are loaded.
+    data : dict of str to numpy.ndarray
+        Loaded column arrays, after cleanup and sampling. Created when
+        data are loaded.
+    num_points : int
+        Number of retained data rows. Created when data are loaded.
+
+    Notes
+    -----
+    The parser expects the standard six-line MESA preamble: header column
+    numbers, header names, header values, a blank line, data column numbers,
+    and data column names. Numeric rows follow. Header values not explicitly
+    skipped must be convertible to float.
+
+    Only selected data columns are parsed. The current array-shape handling
+    assumes multiple data rows and does not reliably support single-row or
+    empty tables.
+    """
+
+    def __init__(self, history_file, *,
+                 only_read_header=False, read_data=True, read_data_cols=None,
+                 clean_data=True, sample_every_n=1):
+        """Read file metadata and optionally load the requested columns."""
+
+        if read_data_cols is None:
+            read_data_cols = []
+
         self.filename = history_file
-        self.is_hdf5 = is_hdf5
-        #header is a dictionary with the general info from the second and third line of file
+
+        # header is a dictionary with the general info from the second
+        # and third line of file
         self.header = {}
         self.header_num = {}
-        #columns is a dictionary which gives the column number (minus 1) corresponding to the key
+
+        # columns is a dictionary which gives the column number (minus
+        # 1) corresponding to the key
         self.columns = {}
         columns = []
-        if not is_hdf5:
-            file = open(self.filename)
-            #first line is not used
-            file.readline()
-            #following two lines have header data
-            header_names = file.readline().split()
-            header_vals = file.readline().split()
-            i = 0
-            for i, header_name in enumerate(header_names):
-                #need to properly account for these new columns
-                if header_name in ["version_number", "compiler", "build", "MESA_SDK_version", "date", "math_backend"]:
-                    continue
-                self.header[header_name] = float(header_vals[i])
-                self.header_num[header_name] = i
-                i+=1
-            if only_read_header:
-                file.close()
-                return
-            #next line is empty
-            file.readline()
-            #following two lines have column data
-            nums = file.readline().split()
-            names = file.readline().split()
-            for i, name in enumerate(names):
-                self.columns[name] = int(nums[i])-1
-                columns.append(name)
+
+        file = open(self.filename)
+
+        # first line is not used
+        file.readline()
+
+        # following two lines have header data
+        header_names = file.readline().split()
+        header_vals = file.readline().split()
+        i = 0
+        for i, header_name in enumerate(header_names):
+            # need to properly account for these new columns
+            if header_name in ["version_number", "compiler", "build",
+                               "MESA_SDK_version", "date", "math_backend"]:
+                continue
+            self.header[header_name] = float(header_vals[i])
+            self.header_num[header_name] = i
+            i += 1
+
+        if only_read_header:
             file.close()
-        else:
-            file = h5py.File(self.filename, "r")
-            header_names = file['header_names'][:]
-            header_vals = file['header_vals'][:]
-            for i in range(len(header_names)):
-                key = header_names[i].decode('utf-8')
-                self.header[key] = header_vals[i]
-                self.header_num[key] = i
-            columns = file['data_names'][:].tolist()
-            for i, col in enumerate(columns):
-                self.columns[col.decode('utf-8')] = i
-                columns[i] = col.decode('utf-8')
-            file.close()
+            return
+
+        # next line is empty
+        file.readline()
+
+        # following two lines have column data
+        nums = file.readline().split()
+        names = file.readline().split()
+        for i, name in enumerate(names):
+            self.columns[name] = int(nums[i])-1
+            columns.append(name)
+        file.close()
 
         if not read_data:
             return
@@ -66,45 +124,78 @@ class mesa_data:
         self.read_data(read_data_cols, clean_data = clean_data)
 
 
-    def read_data(self, column_names, clean_data = True, sample_every_n = 1):
-        #always include model_number if its part of the data
+    def read_data(self, column_names, clean_data=True, sample_every_n=1):
+        """Load selected columns, optionally cleaning and sampling history rows.
+
+        Parameters
+        ----------
+        column_names : list of str
+            Nonempty list of columns to load. Duplicates are removed while
+            preserving order. If available, ``model_number`` is appended
+            to this list in place when not already requested.
+        clean_data : bool, optional
+            Remove rows superseded by later model numbers. Default is True.
+        sample_every_n : int, optional
+            Keep every nth row by its one-based position after cleanup,
+            always retaining the first and last rows. Default is 1, which
+            disables sampling. Sampling requires a ``model_number`` column
+            and more than two rows.
+
+        Raises
+        ------
+        KeyError
+            If a requested column is absent from the column mapping.
+
+        Notes
+        -----
+        The column mapping must already have been read; objects constructed
+        with ``only_read_header=True`` do not have that mapping populated.
+        Each call rereads the file and replaces ``read_columns``, ``data``,
+        and ``num_points`` rather than adding to previously loaded data.
+
+        Cleanup scans backward from the final model, keeping an earlier row
+        only when its model number is smaller than every retained later
+        model number. This removes both duplicates and obsolete portions
+        of a run after a restart. The same row mask is applied to every
+        loaded column. Cleanup and sampling are skipped if the file has no
+        ``model_number`` data column, as is usual for profiles.
+        """
+
+        # always include model_number if its part of the data
         if "model_number" not in column_names and "model_number" in self.columns:
             column_names.append("model_number")
 
-        #be sure there are no repeated column names
-        #(could use set but that breaks the order of the columns, which is needed if I want to save the file)
+        # be sure there are no repeated column names (could use set
+        # but that breaks the order of the columns, which is needed if
+        # I want to save the file)
         column_names = list(OrderedDict.fromkeys(column_names))
 
         self.read_columns = column_names
 
-        if not self.is_hdf5:
-            #read data
-            data = np.loadtxt(self.filename, skiprows = 6, \
-                usecols = tuple([self.columns[k] for k in column_names]), unpack = True)
-        else:
-            file = h5py.File(self.filename, "r")
-            data = file['data_vals'][:,sorted([self.columns[k] for k in column_names])]
-            data = data.transpose()
-            file.close()
+        # read data
+        data = np.loadtxt(self.filename, skiprows=6,
+                          usecols=tuple([self.columns[k] for k in column_names]),
+                          unpack=True)
 
         self.data = {}
-        #Be careful in case only one column is required
+        # Be careful in case only one column is required
         if len(data.shape) > 1:
             for i, column in enumerate(column_names):
                 self.data[column] = data[i]
         else:
             self.data[column_names[0]] = data
 
-        #clean redos
+        # clean redos
         if clean_data and "model_number" in self.columns and len(self.data["model_number"]) > 1:
-            #create a mask
+            # create a mask
             model_number = self.data["model_number"]
             mask = np.zeros(len(model_number))
             max_model_number = model_number[-1]
-            #last entry is valid, start from there and remove repeats
+
+            # last entry is valid, start from there and remove repeats
             for i in range(len(model_number)-2,-1,-1):
                 if model_number[i] >= max_model_number:
-                    #exclude this point
+                    # exclude this point
                     mask[i] = 1
                 else:
                     max_model_number = model_number[i]
@@ -113,92 +204,88 @@ class mesa_data:
                 for column in column_names:
                     self.data[column] = ma.masked_array(self.data[column], mask=mask).compressed()
 
-        #subsample points
-        if sample_every_n > 1 and "model_number" in self.columns and len(self.data["model_number"]) > 2:
-            #keep first and last entry
-            #create a mask
+        # subsample points
+        if (sample_every_n > 1 and "model_number" in self.columns and
+            len(self.data["model_number"]) > 2):
+            # keep first and last entry
+            # create a mask
             model_number = self.data["model_number"]
             mask = np.zeros(len(model_number))
             for i in range(1,len(model_number)-1):
-                if (i+1)%sample_every_n != 0:
-                    #exclude this point
+                if (i+1) % sample_every_n != 0:
+                    # exclude this point
                     mask[i] = 1
 
             if sum(mask) > 0:
                 for column in column_names:
                     self.data[column] = ma.masked_array(self.data[column], mask=mask).compressed()
 
-        #count number of points using first entry in dict
+        # count number of points using first entry in dict
         self.num_points = len(self.data[list(self.read_columns)[0]])
 
-    def get(self,key):
+    def get(self, key):
+        """Return a loaded column by name.
+
+        Parameters
+        ----------
+        key : str
+            Name of a column loaded by `read_data`.
+
+        Returns
+        -------
+        numpy.ndarray
+            Stored column values. The array is returned without copying.
+
+        Raises
+        ------
+        KeyError
+            If the column was not loaded.
+        AttributeError
+            If data have not yet been loaded.
+        """
         return self.data[key]
 
-    def save_as_hdf5(self, filename, header_str_dtype="S28", data_str_dtype="S40", compression_opts=4):
-        f = h5py.File(filename, "w")
-        dset_header_names = f.create_dataset("header_names", (len(self.header),), dtype=header_str_dtype)
-        dset_header_vals = f.create_dataset("header_vals", (len(self.header),), dtype="d")
-        for key in self.header:
-            dset_header_names[self.header_num[key]] = np.string_(key)
-            dset_header_vals[self.header_num[key]] = self.header[key]
-        dset_column_names = f.create_dataset("data_names", (len(self.read_columns),), dtype=data_str_dtype)
-        dset_column_vals = f.create_dataset("data_vals", (self.num_points,len(self.read_columns)), dtype="d",
-                compression='gzip',compression_opts=compression_opts)
-        for k, key in enumerate(self.read_columns):
-            dset_column_names[k] = np.string_(key)
-            dset_column_vals[:,k] = self.data[key]
-        f.close()
 
-    #creates a mesa look-alike output file
-    #prints all integers as doubles
-    #not the most efficient code but I don't care
-    def save_as_ascii(self, filename, header_str_format="{0:>28}", header_double_format="{0:>28.16e}",
-            data_str_format="{0:>40}", data_double_format="{0:>40.16e}"):
-        f = open(filename, "w")
-        for i in range(len(list(self.header))):
-            f.write(header_str_format.format(i+1))
-        f.write("\n")
-        #create an ordered list of keys
-        header_keys = []
-        for i in range(len(list(self.header))):
-            for key in self.header:
-                if self.header_num[key] == i:
-                    header_keys.append(key)
-                    break
-        for i, key in enumerate(header_keys):
-            f.write(header_str_format.format(key))
-        f.write("\n")
-        for i, key in enumerate(header_keys):
-            f.write(header_double_format.format(self.header[key]))
-        f.write("\n")
-        f.write("\n")
+def get_profile_paths(logs_dirs=None):
+    """Resolve profile paths from MESA index files, discarding obsolete rows.
 
-        for i in range(len(list(self.read_columns))):
-            f.write(data_str_format.format(i+1))
-        f.write("\n")
+    Parameters
+    ----------
+    logs_dirs : sequence of str, optional
+        LOGS directories containing ``profiles.index`` files. Defaults to
+        ``['LOGS']``.
 
-        for i, key in enumerate(self.read_columns):
-            f.write(data_str_format.format(key))
-        for k in range(self.num_points):
-            f.write("\n")
-            for i, key in enumerate(self.read_columns):
-                f.write(data_double_format.format(self.data[key][k]))
+    Returns
+    -------
+    list of str
+        Paths of the form ``<log_dir>/profile<number>.data``, concatenated
+        in directory order. Surviving entries retain their index-file order.
 
-        f.close()
+    Notes
+    -----
+    Read model numbers and profile numbers from the first and third index
+    columns, skipping the header line. Scan each index backward, discarding
+    rows whose model number is greater than or equal to a retained later
+    model number. Cleanup is independent for each directory; entries from
+    different directories are neither sorted nor deduplicated together.
 
+    Profile files are not opened or checked for existence. The current
+    implementation assumes each index contains at least two data rows;
+    single-entry and empty indices are not handled.
+    """
 
+    if logs_dirs is None:
+        logs_dirs = ["LOGS"]
 
-#reads the profiles.index files in the folders specified by the logs_dirs array and returns
-#an array containing paths to the individual profile files, after cleaning up redos and backups
-def get_profile_paths(logs_dirs = ["LOGS"]):
     profile_paths = []
     for log_dir in logs_dirs:
         print(log_dir, logs_dirs)
         model_number, paths = np.loadtxt(log_dir+"/profiles.index", skiprows = 1, usecols = (0,2), unpack = True)
         mask = np.zeros(len(paths))
         max_model_number = model_number[-1]
-        #last entry is valid, start from there and remove repeats
-        for i in range(len(model_number)-2,-1,-1):
+
+        # last entry is valid, start from there and remove repeats
+        for i in range(len(model_number)-2, -1, -1):
             if model_number[i] >= max_model_number:
                 mask[i] = 1
             else:
@@ -208,4 +295,3 @@ def get_profile_paths(logs_dirs = ["LOGS"]):
             paths = ma.masked_array(paths, mask=mask).compressed()
         profile_paths.extend([log_dir+"/profile"+str(int(i))+".data" for i in paths])
     return profile_paths
-
