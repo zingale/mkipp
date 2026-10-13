@@ -1,9 +1,10 @@
-#""Read MESA output and construct contour grids and mixing-region boundaries."""
+"""Read MESA output and construct contour grids and mixing-region boundaries."""
 
 import re
 from collections import namedtuple
 
-import mesa_data as md
+import mkipp2.mesa_data as md
+
 import numpy as np
 from matplotlib.path import Path
 

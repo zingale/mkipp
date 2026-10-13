@@ -6,9 +6,10 @@ Requirements: history.data and profiles.data containing
 """
 from collections import namedtuple
 
-import kipp_data as kipp
+import mkipp2.kipp_data as kipp
+import mkipp2.mesa_data as md
+
 import matplotlib.pyplot as plt
-import mesa_data as md
 import numpy as np
 from matplotlib.patches import PathPatch
 
