@@ -19,7 +19,7 @@ import mkipp
 mkipp.kipp_plot(mkipp.Kipp_Args())
 ```
 results in the following plot
-![kipp](Kippenhahn.png)
+![kipp](images/Kippenhahn.png)
 
 Here is an example that changes the default filename and the x limits. When x limits are specified the plotter optimizes which profile data it reads. To save a pdf just change the filename extension.
 ```python
@@ -27,7 +27,7 @@ import mkipp
 mkipp.kipp_plot(mkipp.Kipp_Args(save_filename = "Kippenhahn2.png", xlims = [300,600]))
 ```
 which results in the following plot
-![kipp](Kippenhahn2.png)
+![kipp](images/Kippenhahn2.png)
 
 Several options can be passed to mkipp.Kipp_Args():
 ```python
@@ -141,7 +141,7 @@ axis.set_xlim(kipp_plot.xlims)
 plt.savefig("Kippenhahn3.png")
 ```
 which results in the following plot
-![kipp](Kippenhahn3.png)
+![kipp](images/Kippenhahn3.png)
 
 It is also possible to apply a function to the xaxis. This can be used to generate a log(tf-t) plot. Here we also make use of the mesa_data class to read out the maximum age first.
 ```python
@@ -168,7 +168,7 @@ axis.set_ylabel("Mass (solar masses)")
 plt.savefig("Kippenhahn4.png")
 ```
 which results in the following plot
-![kipp](Kippenhahn4.png)
+![kipp](images/Kippenhahn4.png)
 
 Sometimes you might want to plot data resulting from operations on the columns of profile files. Instead of re-running a MESA model with extra columns, to extract the required data you can just pass a function that computes it. In this case, I make a plot of log g.
 ```python
@@ -200,7 +200,7 @@ axis.set_ylabel("Mass (solar masses)")
 plt.savefig("Kippenhahn5.png")
 ```
 which results in the following plot
-![kipp](Kippenhahn5.png)
+![kipp](images/Kippenhahn5.png)
 
 The data from mixing regions and profiles can be extracted using lower level functions and plotted in an arbitrary form. The following is an (ugly) example:
 
@@ -262,7 +262,7 @@ axis.set_ylim(0,max(mixing_zones.y_coords))
 plt.savefig("Kippenhahn6.png")
 ```
 which gives the following ugly result (just an example!)
-![kipp](Kippenhahn6.png)
+![kipp](images/Kippenhahn6.png)
 
 Another nice thing to do is to make different subpanels containing different
 evolutionary stages. This can be achieved by creating a single kipp\_args object
@@ -308,4 +308,4 @@ ax3.yaxis.set_ticklabels([])
 plt.savefig("Kippenhahn7.png")
 ```
 which produces the following
-![kipp](Kippenhahn7.png)
+![kipp](images/Kippenhahn7.png)
