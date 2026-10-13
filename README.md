@@ -1,11 +1,10 @@
-# `mkipp`
+# `mkipp2`
 
 Kippenhahn plotter for MESA.
 
-> [!WARNING]
-> This `README` might be out of date! In case the examples don't work
-> refer to the `example.py` file in the repository.
-
+> [!NOTE]
+> This is a clean-up of the `mkipp` project.  See `CHANGES.md` for
+> history.
 
 > [!IMPORTANT]
 > Your `history_columns.list` needs to have `mixing_regions` and
