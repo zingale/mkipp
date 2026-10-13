@@ -1,16 +1,17 @@
 #!/usr/bin/env python
-import mkipp
 import kipp_data
-import mesa_data
 import matplotlib.pyplot as plt
-from matplotlib.patches import PathPatch
+import mesa_data
 import numpy as np
+from matplotlib.patches import PathPatch
+
+import mkipp
 
 #simple example (saves to default filename Kippenhahn.png)
-mkipp.kipp_plot(mkipp.Kipp_Args())
+mkipp.kipp_plot(mkipp.KippArgs())
 
 #specify xrange and filename
-mkipp.kipp_plot(mkipp.Kipp_Args(save_filename = "Kippenhahn2.png", xlims = [300,600]))
+mkipp.kipp_plot(mkipp.KippArgs(save_filename = "Kippenhahn2.png", xlims = [300,600]))
 
 #plot of Helium abundance against time, independent decoration
 fig = plt.figure()
@@ -21,7 +22,7 @@ axis = plt.gca()
 #   kipp_plot.histories    : list of history files read. data can be accesed from this
 #                            using the get("column_name") function
 #   kipp_plot.xlims        : limits of data in x coordinate
-kipp_plot = mkipp.kipp_plot(mkipp.Kipp_Args(
+kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(
         xaxis = "star_age",
         time_units = "Myr",
         identifier = "y",
@@ -42,7 +43,7 @@ axis = plt.gca()
 #only need to read star_age column first
 history = mesa_data.mesa_data("LOGS/history.data", read_data_cols = ["star_age"])
 max_age = max(history.get("star_age"))
-kipp_plot = mkipp.kipp_plot(mkipp.Kipp_Args(
+kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(
         xaxis = "star_age",
         time_units = "yr",
         function_on_xaxis = lambda x: np.log10(max_age+0.01 - x),
@@ -68,7 +69,7 @@ def g_extractor(identifier, log10_on_data, prof, return_data_columns = False):
         return np.log10(data)
     else:
         return data
-kipp_plot = mkipp.kipp_plot(mkipp.Kipp_Args(
+kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(
         extractor = g_extractor,
         decorate_plot = False,
         save_file = False), axis = axis)
@@ -79,7 +80,7 @@ axis.set_ylabel("Mass (solar masses)")
 plt.savefig("Kippenhahn5.png")
 
 #Reading out mixing regions and data, and plotting independently
-kipp_args = mkipp.Kipp_Args()
+kipp_args = mkipp.KippArgs()
 fig = plt.figure()
 axis = plt.gca()
 profile_paths = mesa_data.get_profile_paths(["LOGS"])
@@ -136,7 +137,7 @@ ax2 = fig.add_subplot(spec[0, 1])
 ax3 = fig.add_subplot(spec[0, 2])
 ax4 = fig.add_subplot(spec[0, 3])
 
-kipp_args = mkipp.Kipp_Args(save_file = False, xaxis="star_age", decorate_plot = False)
+kipp_args = mkipp.KippArgs(save_file = False, xaxis="star_age", decorate_plot = False)
 mkipp.kipp_plot(kipp_args, axis=ax1)
 mkipp.kipp_plot(kipp_args, axis=ax2)
 kipp_plot = mkipp.kipp_plot(kipp_args, axis=ax3)

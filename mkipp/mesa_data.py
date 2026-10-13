@@ -1,9 +1,11 @@
-import numpy as np
-import numpy.ma as ma
-import h5py
 from collections import OrderedDict
 
-#class to extract a mesa data file.
+import h5py
+import numpy as np
+import numpy.ma as ma
+
+
+# class to extract a mesa data file.
 class mesa_data:
     def __init__(self, history_file, only_read_header = False, read_data = True, read_data_cols = [],
             clean_data = True, sample_every_n = 1, is_hdf5 = False):
@@ -16,7 +18,7 @@ class mesa_data:
         self.columns = {}
         columns = []
         if not is_hdf5:
-            file = open(self.filename, "r")
+            file = open(self.filename)
             #first line is not used
             file.readline()
             #following two lines have header data

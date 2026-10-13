@@ -1,9 +1,11 @@
-from matplotlib.path import Path
-from matplotlib.patches import PathPatch
-from mesa_data import *
 import re
 from collections import namedtuple
+
 import numpy as np
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path
+from mesa_data import *
+
 
 # Someday, if I remember, I might explain how this works
 # Class used to store mixing zones
@@ -102,9 +104,10 @@ class Zone:
         self.last_blocks.extend(zone2.last_blocks)
         self.new_blocks.extend(zone2.new_blocks)
 
-#returns a list of matplotlib path objects with the mixing regions
-def get_mixing_zones(history_paths, kipp_args, xlims = None):
-    # Get mixing zones and mass borders from history.data files
+
+# returns a list of matplotlib path objects with the mixing regions
+def get_mixing_zones(history_paths, kipp_args, xlims=None):
+    """Get mixing zones and mass borders from history.data files"""
 
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
@@ -180,7 +183,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims = None):
         current_x = x_coords[i]
         #ignore points outside of range, but include one outside each boundary
         #do not assume x_coords is in increasing order
-        if xlims != None:
+        if xlims is not None:
             if not xlims[0] <= current_x <= xlims[1]:
                 if not ((i+1 < len(x_coords) and xlims[0] <= x_coords[i+1] <= xlims[1]) \
                         or (i-1 > 0 and xlims[0] <= x_coords[i-1] <= xlims[1])):
@@ -244,7 +247,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims = None):
     Mixing_Zones = namedtuple('Mixing_Zones', 'zones mix_types x_coords y_coords histories')
     return Mixing_Zones(zones, mix_types, x_coords, y_coords, histories)
 
-def get_xyz_data(profile_paths, kipp_args, xlims = None):
+def get_xyz_data(profile_paths, kipp_args, xlims=None):
 
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
@@ -275,7 +278,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims = None):
                     max_y = max(prof.header['photosphere_r'],max_y)
             #if given xlims, filter out profiles out of range
             #add one profile to each side so data is shown at borders
-            if xlims != None:
+            if xlims is not None:
                 x_coord = kipp_args.function_on_xaxis(prof.header[kipp_args.xaxis] / xaxis_divide)
                 if xlims[0] <= x_coord <= xlims[1]:
                     prof_include[i] = True
