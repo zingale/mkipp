@@ -1,0 +1,83 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+# project metadata
+
+[project]
+name = "mkipp2"
+description = "A Kippenhahn diagram generator for MESA stellar evolution output"
+readme = "README.md"
+license.text = "GPL-2"
+dynamic = ["version"]
+
+dependencies = [
+  "numpy",
+  "matplotlib",
+]
+
+[project.urls]
+Homepage = "https://github.com/zingale/mkipp2"
+
+# packaging
+
+[tool.setuptools]
+zip-safe = false
+# we explicitly list the data we want below
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["mkipp2*"]
+exclude = ["*.tests*"]
+namespaces = false
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+version_file = "mkipp2/_version.py"
+
+
+# development tools
+
+[tool.pylint.MAIN]
+ignore-patterns = "flycheck*,_version.py"
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = [
+  "unspecified-encoding",
+  "line-too-long",
+  "wrong-import-order",
+  "too-many-branches",
+  "too-many-lines",
+  "too-many-statements",
+  "too-many-instance-attributes",
+  "too-many-arguments",
+  "too-many-locals",
+  "too-few-public-methods",
+  "invalid-name",
+]
+enable = ["useless-suppression"]
+
+[tool.pylint.CLASSES]
+defining-attr-methods = [
+  "__init__",
+  "__new__",
+  "setUp",
+  "asyncSetUp",
+  "__post_init__",
+  "setup_class", "setup_method",  # for tests
+]
+
+[tool.pylint.FORMAT]
+max-line-length = 132
+
+[tool.pylint.SIMILARITIES]
+min-similarity-lines = 10
+
+[tool.pylint.TYPECHECK]
+generated-members = ["viridis", "bwr"]
+# see https://github.com/PyCQA/pylint/issues/2289 for the generated-members
+
+
+[tool.codespell]
+skip = ".git"
