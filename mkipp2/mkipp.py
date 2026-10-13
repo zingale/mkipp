@@ -439,6 +439,12 @@ def kipp_plot(kipp_args, axis=None):
             elif core_mass == "O":
                 field_name = "o_core_mass"
                 color = "g:"
+            elif core_mass == "CO":
+                field_name = "co_core_mass"
+                color = "g:"
+            elif core_mass == "Fe":
+                field_name = "fe_core_mass"
+                color = "m:"
             for history in mixing_zones.histories:
                 axis.plot(kipp_args.function_on_xaxis(history.get(kipp_args.xaxis) / xaxis_divide),
                           history.get(field_name), color)
