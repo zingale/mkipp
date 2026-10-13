@@ -3,10 +3,10 @@
 import re
 from collections import namedtuple
 
-import mkipp2.mesa_data as md
-
 import numpy as np
 from matplotlib.path import Path
+
+import mkipp2.mesa_data as md
 
 
 class ZoneBlock:

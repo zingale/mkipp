@@ -6,12 +6,12 @@ Requirements: history.data and profiles.data containing
 """
 from collections import namedtuple
 
-import mkipp2.kipp_data as kipp
-import mkipp2.mesa_data as md
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import PathPatch
+
+import mkipp2.kipp_data as kipp
+import mkipp2.mesa_data as md
 
 
 # Create contour levels array (TBD: Need to be improved)

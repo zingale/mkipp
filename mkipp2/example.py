@@ -2,10 +2,9 @@
 import kipp_data
 import matplotlib.pyplot as plt
 import mesa_data
+import mkipp
 import numpy as np
 from matplotlib.patches import PathPatch
-
-import mkipp
 
 # simple example (saves to default filename Kippenhahn.png)
 mkipp.kipp_plot(mkipp.KippArgs())

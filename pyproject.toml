@@ -81,3 +81,8 @@ generated-members = ["viridis", "bwr"]
 
 [tool.codespell]
 skip = ".git"
+
+
+[tool.isort]
+known_first_party = ["mkipp2"]
+
