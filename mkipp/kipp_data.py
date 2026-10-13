@@ -1,4 +1,4 @@
-"""Read MESA output and construct contour grids and mixing-region boundaries."""
+#""Read MESA output and construct contour grids and mixing-region boundaries."""
 
 import re
 from collections import namedtuple
@@ -398,7 +398,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
             for k in range(1,len(zones_to_merge)):
                 zones_to_merge[0].merge_zone(zones_to_merge[k])
                 open_zones.remove(zones_to_merge[k])
-            # create zone if it has no predecesor
+            # create zone if it has no predecessor
             if not exists:
                 z = Zone(zone_block, mix_type)
                 new_zones.append(z)
@@ -529,7 +529,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     y_interp = np.array([max_y * j / (kipp_args.yresolution-1) for j in range(kipp_args.yresolution)])
 
     # now read the data
-    # "columns" is a list with the neccesary columns that will be
+    # "columns" is a list with the necessary columns that will be
     # parsed from the profile*.data files
     columns = []
     if kipp_args.yaxis == "mass":

@@ -1,23 +1,5 @@
 """Create Kippenhahn diagrams from MESA history and profile output.
 
-Notes
------
-Based on SimpleMesaKippy.py and Kippy.py.
-
-Prehistory: SimpleMesaKippy.py, Author: Alfred Gautschy /23.VIII.2012
-
-            Kippy.py, Author: Pablo Marchant /13.V.2013
-
-            MKippi.py, Author: Matteo Cantiello /V.2013 (Added LOSSES. Color/Line Style inspired by convplot.pro IDL routine of A.Heger)
-                                                /VI.2013 (Added RADIUS, TIME and NORMALIZE Options. OMEGA Allows to plot w-contours)
-                                                /VII.2013 (Tentatively added Rotational diff. coefficients,conv. velocities and Equipartition B-field)
-
-                                                (most of these were removed and replaced with flexible plotting options)
-
-            mkipp.py, Author: Pablo Marchant    /II.2014 (full rewrite, code cleanup and now works as a module, not a script)
-                                                /III.2014 (enhancement of mixing regions ploting to deal with holes and merging regions)
-                                                /IV.2015 stopped listing enhancements
-
 Requirements: history.data and profiles.data containing
               History (star_age,model_number,star_mass,photosphere_r,mixing_regions,mix_relr_regions)
               Profile (mass,radius,eps_nuc)
@@ -437,7 +419,7 @@ def kipp_plot(kipp_args, axis=None):
         if x_coord > xyz_data.xlims[1]:
             break
 
-    # Also fill with white above the plot to cover any remainer of the
+    # Also fill with white above the plot to cover any remainder of the
     # contour plot
     axis.fill_between(mixing_zones.x_coords, max(mixing_zones.y_coords),
                       mixing_zones.y_coords, color="w")

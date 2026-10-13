@@ -19,8 +19,8 @@ fig, axis = plt.subplots()
 # mkipp.kipp_plot returns an object containing
 #   kipp_plot.contour_plot : the return value of matplotlibs contourf. Can be
 #                            used to create a colorbar with plt.colorbar()
-#   kipp_plot.histories    : list of history files read. data can be accesed from this
-#                            using the get("column_name") function
+#   kipp_plot.histories    : list of history files read. data can be accessed
+#                            from this using the get("column_name") function
 #   kipp_plot.xlims        : limits of data in x coordinate
 kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
                                            time_units="Myr",
