@@ -268,7 +268,8 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     Parameters
     ----------
     history_paths : sequence of str
-        History file paths in the order to concatenate.
+        History file paths in the order to concatenate. All files must have
+        the same data column names; column order may differ.
     kipp_args : mkipp.KippArgs
         Plot settings, including axis transforms, data cleaning, extra
         history columns, normalization, and thickness tolerances.
@@ -285,6 +286,11 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
         radius, or one when normalized), and the loaded ``histories``.
         Surface coordinates and histories retain the full input range even
         when ``xlims`` restricts block construction.
+
+    Raises
+    ------
+    ValueError
+        If history files have different data column names.
 
     Notes
     -----
@@ -308,8 +314,22 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     print("Reading history data")
     mix_data = []
     histories = []
+    reference_columns = None
+    reference_path = None
     for history_name in history_paths:
         history = md.MesaData(history_name, read_data=False)
+        history_columns = set(history.columns)
+        if reference_columns is None:
+            reference_columns = history_columns
+            reference_path = history_name
+        elif history_columns != reference_columns:
+            missing = sorted(reference_columns - history_columns)
+            extra = sorted(history_columns - reference_columns)
+            raise ValueError(
+                f"History file {str(history_name)!r} has different columns from "
+                f"{str(reference_path)!r}: missing columns {missing}; extra columns {extra}. "
+                "All history files must have the same data column names."
+            )
         columns = []
         for key in history.columns:
             search_regex = "log_R|star_mass|model_number|star_age|.*core_mass|mix_type.*|"

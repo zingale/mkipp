@@ -107,7 +107,8 @@ class KippArgs:
         ``profiles.index`` in each LOGS directory.
     history_paths : sequence of str, optional
         History paths in concatenation order. If None or empty, use
-        ``history.data`` in each LOGS directory.
+        ``history.data`` in each LOGS directory. All history files must have
+        the same data column names; column order may differ.
     clean_data : bool, optional
         Remove history rows superseded by backups or restarts. Default is
         True.

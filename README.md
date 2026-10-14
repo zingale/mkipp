@@ -13,6 +13,8 @@ Kippenhahn plotter for MESA.
 > Also, newer versions of MESA include significantly less output in
 > the profile files, so values such as `eps_nuc` need to be added to
 > `profile_columns.list` as well.
+> When combining multiple history files, all files must have the same
+> data column names (including unused columns). Column order may differ.
 
 
 The Kippenhahn plotter consists of 3 files:
