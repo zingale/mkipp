@@ -171,17 +171,6 @@ class KippArgs:
         Minimum mixing-layer thickness as a fraction of the surface
         coordinate, using the tolerance for the selected y axis. Each
         defaults to 1e-7.
-    decorate_plot : bool, optional
-        Add axis labels, a colorbar, and a legend for the mixing types
-        drawn on the plot. Default is True.
-    show_plot : bool, optional
-        Call ``pyplot.show()`` after plotting. Default is False.
-    save_file : bool, optional
-        Save the current pyplot figure after the optional show call.
-        Default is True.
-    save_filename : str, optional
-        Output filename; its extension determines the format. Defaults to
-        ``'Kippenhahn.png'``.
     xlims : tuple of float, optional
         Inclusive limits in transformed x coordinates, used for data
         selection and displayed axis limits. Neighboring samples are kept
@@ -236,10 +225,6 @@ class KippArgs:
                  yresolution=1000,
                  mass_tolerance=0.0000001,
                  radius_tolerance=0.0000001,
-                 decorate_plot=True,
-                 show_plot=False,
-                 save_file=True,
-                 save_filename="Kippenhahn.png",
                  xlims=None):
         """Store plot settings and prepare profile and mixing-region data."""
 
@@ -283,10 +268,6 @@ class KippArgs:
         self.yresolution = yresolution
         self.mass_tolerance = mass_tolerance
         self.radius_tolerance = radius_tolerance
-        self.decorate_plot = decorate_plot
-        self.show_plot = show_plot
-        self.save_file = save_file
-        self.save_filename = save_filename
         self.xlims = xlims
 
         # Fill profile and history names if unspecified
@@ -309,7 +290,13 @@ class KippArgs:
                                                   self, xlims=xlims)
 
 
-def kipp_plot(kipp_args, axis=None):
+def kipp_plot(kipp_args, *,
+              axis=None,
+              decorate_plot=True,
+              show_mixing_legend=True,
+              show_plot=False,
+              save_file=True,
+              save_filename="Kippenhahn.png"):
     """Draw profile contours, mixing boundaries, and stellar structure.
 
     Parameters
@@ -319,6 +306,18 @@ def kipp_plot(kipp_args, axis=None):
         mixing types, core-mass overlays, labels, display, and file output.
     axis : matplotlib.axes.Axes, optional
         Axes on which to draw. If None, create a figure and axes.
+    decorate_plot : bool, optional
+        Add axis labels and a colorbar.  Default is True.
+    show_mixing_legend : bool, optional
+        Add a legend showing the mixing types.  Default is True.
+    show_plot : bool, optional
+        Call ``pyplot.show()`` after plotting. Default is False.
+    save_file : bool, optional
+        Save the current pyplot figure after the optional show call.
+        Default is True.
+    save_filename : str, optional
+        Output filename; its extension determines the format. Defaults to
+        ``'Kippenhahn.png'``.
 
     Returns
     -------
@@ -461,11 +460,13 @@ def kipp_plot(kipp_args, axis=None):
                 axis.plot(kipp_args.function_on_xaxis(history.get(kipp_args.xaxis) / xaxis_divide),
                           history.get(field_name), color)
 
-    if kipp_args.decorate_plot:
+    if show_mixing_legend:
         if mixing_handles:
             axis.legend(handles=[mixing_handles[key]
                                  for key in sorted(mixing_handles)],
-                        title="Mixing", loc="best")
+                        loc="best")
+
+    if decorate_plot:
 
         # add colorbar
         cbar = plt.colorbar(contour_plot, pad=0.05)
@@ -490,11 +491,11 @@ def kipp_plot(kipp_args, axis=None):
     if kipp_args.xlims is not None:
         axis.set_xlim(kipp_args.xlims)
 
-    if kipp_args.show_plot:
+    if show_plot:
         fig.show()
-    if kipp_args.save_file:
+    if save_file:
         fig.tight_layout()
-        fig.savefig(kipp_args.save_filename)
+        fig.savefig(save_filename)
 
     KippPlot = namedtuple('KippPlot', 'contour_plot histories xlims')
 
