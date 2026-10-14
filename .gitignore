@@ -3,3 +3,7 @@ __pycache__
 _version.py
 
 mkipp2/notes
+
+flycheck*
+
+mkipp2.egg-info

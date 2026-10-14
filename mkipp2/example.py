@@ -47,7 +47,7 @@ kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
                                            function_on_xaxis=lambda x: np.log10(max_age+0.01 - x),
                                            decorate_plot=False,
                                            save_file=False), axis=axis)
-cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
+cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("log |eps_nuc|")
 axis.set_xlabel("log (tf-t) [yrs]")
 axis.set_ylabel("Mass (solar masses)")
@@ -59,6 +59,8 @@ fig, axis = plt.subplots()
 msun = 1.99e33
 rsun = 6.96e10
 cgrav = 6.67e-8
+
+
 def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
     if return_data_columns:
         return ["radius", "mass"]
@@ -66,6 +68,7 @@ def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
     if log10_on_data:
         return np.log10(data)
     return data
+
 
 kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(extractor=g_extractor,
                                            decorate_plot=False,
@@ -107,30 +110,30 @@ mixing_zones = kipp_data.get_mixing_zones(history_paths, kipp_args,
                                           xlims=xyz_data.xlims)
 
 # just plot convection, overshooting and semiconvection
-for i,zone in enumerate(mixing_zones.zones):
+for i, zone in enumerate(mixing_zones.zones):
     color = ""
     # Convective mixing
-    if mixing_zones.mix_types[i] == 1: #convection
+    if mixing_zones.mix_types[i] == 1:  # convection
         color = '#332288'
     # Overshooting
-    elif mixing_zones.mix_types[i] == 3: #overshooting
+    elif mixing_zones.mix_types[i] == 3:  # overshooting
         color = '#117733'
     # Semiconvective mixing
-    elif mixing_zones.mix_types[i] == 4: #semiconvection
+    elif mixing_zones.mix_types[i] == 4:  # semiconvection
         color = '#CC6677'
     else:
         continue
-    axis.add_patch(PathPatch(zone, color=color, alpha = 0.5, lw = 0))
+    axis.add_patch(PathPatch(zone, color=color, alpha=0.5, lw=0))
 
 if (xyz_data.Z.size > 0):
-    CS = plt.contour(xyz_data.X, xyz_data.Y, xyz_data.Z, [0,4,8], colors='k')
-    plt.clabel(CS, inline=1, fontsize=10)
+    cs = plt.contour(xyz_data.X, xyz_data.Y, xyz_data.Z, [0, 4, 8], colors='k')
+    plt.clabel(cs, inline=1, fontsize=10)
 
 axis.plot(mixing_zones.x_coords, mixing_zones.y_coords, 'k', lw=4)
 axis.set_xlabel("model_number")
 axis.set_ylabel("Mass (solar masses)")
-axis.set_xlim(0,max(mixing_zones.x_coords))
-axis.set_ylim(0,max(mixing_zones.y_coords))
+axis.set_xlim(0, max(mixing_zones.x_coords))
+axis.set_ylim(0, max(mixing_zones.y_coords))
 fig.tight_layout()
 fig.savefig("Kippenhahn6.png")
 
@@ -158,7 +161,7 @@ for i, center_h1 in enumerate(history.get("center_h1")):
         break
 for i, center_he4 in enumerate(history.get("center_he4")):
     if center_he4 < 1e-3:
-        age_hedep = history.get("star_age")[i]/1e6
+        age_hedep = history.get("star_age")[i] / 1e6
         break
 
 ax1.set_xlim([0, age_tams])

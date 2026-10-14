@@ -55,6 +55,7 @@ class ZoneBlock:
             vertex.prev_vertex = self.vertices[i-1]
             vertex.next_vertex = self.vertices[(i+1) % 4]
 
+
 class ZoneVertex:
     """A boundary node with coordinates, neighbor links, and a traversal flag.
 
@@ -79,6 +80,7 @@ class ZoneVertex:
         self.prev_vertex = None
         self.next_vertex = None
         self.checked = False
+
 
 class Zone:
     """Accumulate connected blocks of one MESA mixing type into a boundary.
@@ -308,7 +310,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     mix_data = []
     histories = []
     for history_name in history_paths:
-        history = md.MesaData(history_name, read_data = False)
+        history = md.MesaData(history_name, read_data=False)
         columns = []
         for key in history.columns:
             search_regex = "log_R|star_mass|model_number|star_age|.*core_mass|mix_type.*|"
@@ -318,9 +320,9 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
                 search_regex = search_regex + "mix_relr_top.*"
             else:
                 search_regex = search_regex + "mix_qtop.*"
-            if re.search(search_regex,key):
+            if re.search(search_regex, key):
                 columns.append(key)
-        history.read_data(columns, clean_data = kipp_args.clean_data)
+        history.read_data(columns, clean_data=kipp_args.clean_data)
         histories.append(history)
     x_coords = []
     for history in histories:
@@ -331,7 +333,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
         y_coords = [1.0]*len(x_coords)
     elif kipp_args.yaxis == "radius":
         for history in histories:
-            y_coords.extend(np.power(10,history.get('log_R')))
+            y_coords.extend(np.power(10, history.get('log_R')))
     else:
         for history in histories:
             y_coords.extend(history.get('star_mass'))
@@ -344,11 +346,11 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
             mix_type = []
             mix_top = []
             for history in histories:
-                mix_type.extend(history.get('mix_type_'+str(mesa_mix_zones)))
+                mix_type.extend(history.get('mix_type_' + str(mesa_mix_zones)))
                 if kipp_args.yaxis == "radius":
-                    mix_top.extend(history.get('mix_relr_top_'+str(mesa_mix_zones)))
+                    mix_top.extend(history.get('mix_relr_top_' + str(mesa_mix_zones)))
                 else:
-                    mix_top.extend(history.get('mix_qtop_'+str(mesa_mix_zones)))
+                    mix_top.extend(history.get('mix_qtop_' + str(mesa_mix_zones)))
             mix_data.append([mix_type, mix_top])
         except Exception:
             # reached all mix zones included
@@ -365,7 +367,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     mix_types = []
     open_zones = []
     new_zones = []
-    for i in range(1,len(x_coords)):
+    for i in range(1, len(x_coords)):
         current_x = x_coords[i]
         # ignore points outside of range, but include one outside each
         # boundary do not assume x_coords is in increasing order
@@ -391,12 +393,13 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
             exists = False
             zones_to_merge = []
             for z in open_zones:
-                if z.extend(zone_block.vertices[1], zone_block.vertices[1].prev_vertex, mix_type):
+                if z.extend(zone_block.vertices[1], zone_block.vertices[1].prev_vertex,
+                            mix_type):
                     exists = True
                     z.new_blocks.append(zone_block)
                     zones_to_merge.append(z)
             # merge zones as needed
-            for k in range(1,len(zones_to_merge)):
+            for k in range(1, len(zones_to_merge)):
                 zones_to_merge[0].merge_zone(zones_to_merge[k])
                 open_zones.remove(zones_to_merge[k])
             # create zone if it has no predecessor
@@ -496,17 +499,17 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
 
     # read headers to determine required range in y coordinate
     if kipp_args.yaxis_normalize:
-        max_y = star_mass = star_radius = 1.0
+        max_y = 1.0
 
     prof_include = [False] * len(profile_paths)
     for i, profile_name in enumerate(profile_paths):
         try:
-            prof = md.MesaData(profile_name, only_read_header = True)
+            prof = md.MesaData(profile_name, only_read_header=True)
             if not kipp_args.yaxis_normalize:
                 if kipp_args.yaxis == "mass":
-                    max_y = max(prof.header['star_mass'],max_y)
+                    max_y = max(prof.header['star_mass'], max_y)
                 elif kipp_args.yaxis == "radius":
-                    max_y = max(prof.header['photosphere_r'],max_y)
+                    max_y = max(prof.header['photosphere_r'], max_y)
             # if given xlims, filter out profiles out of range add one
             # profile to each side so data is shown at borders
             if xlims is not None:
@@ -520,7 +523,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
             else:
                 prof_include[i] = True
         except Exception as e:
-            print("Couldn't read profile " + profile_name,e)
+            print("Couldn't read profile " + profile_name, e)
 
     # Filter out profiles. This will also remove profiles that failed
     # to load
@@ -547,16 +550,16 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
                                        None, return_data_columns=True))
 
     # Initialize interpolation grid
-    Z_data_array = np.zeros((kipp_args.yresolution,len(profile_paths)))
+    Z_data_array = np.zeros((kipp_args.yresolution, len(profile_paths)))
 
     # XY coordinates for data
-    X_data_array = np.zeros((kipp_args.yresolution,len(profile_paths)))
-    Y_data_array = np.zeros((kipp_args.yresolution,len(profile_paths)))
+    X_data_array = np.zeros((kipp_args.yresolution, len(profile_paths)))
+    Y_data_array = np.zeros((kipp_args.yresolution, len(profile_paths)))
     for j in range(kipp_args.yresolution):
-        Y_data_array[j,:] = max_y * j / (kipp_args.yresolution-1)
+        Y_data_array[j, :] = max_y * j / (kipp_args.yresolution-1)
     for i, profile_name in enumerate(profile_paths):
         try:
-            prof = md.MesaData(profile_name, read_data = False)
+            prof = md.MesaData(profile_name, read_data=False)
             prof.read_data(columns)
         except Exception as e:
             print("Couldn't read profile " + profile_name, e)
@@ -566,9 +569,9 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
         max_x_coord = max(max_x_coord, x_coord)
         min_x_coord = min(min_x_coord, x_coord)
         if kipp_args.yaxis == "mass":
-            prof_y = prof.header['star_mass']
+            _ = prof.header['star_mass']
         elif kipp_args.yaxis == "radius":
-            prof_y = prof.header['photosphere_r']
+            _ = prof.header['photosphere_r']
 
         # fill up X positions
         X_data_array[:, i] = x_coord
