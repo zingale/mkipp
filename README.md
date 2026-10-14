@@ -27,8 +27,8 @@ data for a 20 Msun star, which if used with the following python
 script
 
 ```python
-import mkipp
-mkipp.kipp_plot(mkipp.KippArgs())
+import mkipp2
+mkipp2.kipp_plot(mkipp2.KippArgs())
 ```
 results in the following plot
 ![kipp](images/Kippenhahn.png)
@@ -39,14 +39,15 @@ profile data it reads. To save a pdf just change the filename
 extension.
 
 ```python
-import mkipp
-mkipp.kipp_plot(mkipp.KippArgs(save_filename="Kippenhahn2.png", xlims=[300,600]))
+import mkipp2
+mkipp2.kipp_plot(mkipp2.KippArgs(xlims=[300,600]),
+                 save_filename="Kippenhahn2.png")
 ```
 
 which results in the following plot
 ![kipp](images/Kippenhahn2.png)
 
-Several options can be passed to `mkipp.KippArgs()` --- see the docstring
+Several options can be passed to `mkipp2.KippArgs()` --- see the docstring
 for details.
 
 Also a matplotlib `Axis` object can be passed to `kipp_plot`. This allows
@@ -56,24 +57,23 @@ following plots evolution of Helium abundance with respect to time for
 the same model as before
 
 ```python
-import mkipp
+import mkipp2
 import matplotlib.pyplot as plt
 import numpy as np
 # plot of Helium abundance against time, independent decoration
 fig, axis = plt.subplots()
-# mkipp.kipp_plot returns an object containing
+# mkipp2.kipp_plot returns an object containing
 #   kipp_plot.contour_plot : the return value of matplotlibs contourf. Can be
 #                            used to create a colorbar with plt.colorbar()
 #   kipp_plot.histories    : list of history files read. data can be accesed from this
 #                            using the get("column_name") function
 #   kipp_plot.xlims        : limits of data in x coordinate
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
-                                           time_units="Myr",
-                                           identifier="y",
-                                           log10_on_data=False,
-                                           levels=np.arange(0.0, 1.001, 0.01),
-                                           decorate_plot=False,
-                                           save_file=False), axis=axis)
+kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
+                                             time_units="Myr",
+                                             identifier="y",
+                                             log10_on_data=False,
+                                             levels=np.arange(0.0, 1.001, 0.01)),
+                             decorate_plot=False, save_file=False, axis=axis)
 cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 cbar.set_label("Helium abundance")
 axis.set_xlabel("Time (Myr)")
@@ -90,7 +90,7 @@ to generate a log(tf-t) plot. Here we also make use of the mesa_data
 class to read out the maximum age first.
 
 ```python
-import mkipp
+import mkipp2
 import matplotlib.pyplot as plt
 import numpy as np
 import mesa_data
@@ -99,11 +99,10 @@ fig, axis = plt.subplots()
 # only need to read star_age column first
 history = mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age"])
 max_age = max(history.get("star_age"))
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
-                                           time_units="yr",
-                                           function_on_xaxis=lambda x: np.log10(max_age+0.01 - x),
-                                           decorate_plot=False,
-                                           save_file=False), axis=axis)
+kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
+                                             time_units="yr",
+                                             function_on_xaxis=lambda x: np.log10(max_age+0.01 - x)),
+                             decorate_plot=False, save_file=False, axis=axis)
 cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 cbar.set_label("log |eps_nuc|")
 axis.set_xlabel("log (tf-t) [yrs]")
@@ -120,7 +119,7 @@ extra columns, to extract the required data you can just pass a
 function that computes it. In this case, I make a plot of log g.
 
 ```python
-import mkipp
+import mkipp2
 import matplotlib.pyplot as plt
 import numpy as np
 #add custom extractor to compute g
@@ -135,9 +134,8 @@ def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
     if log10_on_data:
         return np.log10(data)
     return data
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(extractor=g_extractor,
-                                           decorate_plot=False,
-                                           save_file=False), axis=axis)
+kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(extractor=g_extractor),
+                             decorate_plot=False, save_file=False, axis=axis)
 bar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 bar.set_label("log g")
 axis.set_xlabel("model_number")
@@ -152,14 +150,14 @@ level functions and plotted in an arbitrary form. The following is an
 (ugly) example:
 
 ```python
-import mkipp
+import mkipp2
 import kipp_data
 import mesa_data
 import matplotlib.pyplot as plt
 from matplotlib.patches import PathPatch
 import numpy as np
 # Reading out mixing regions and data, and plotting independently
-kipp_args = mkipp.KippArgs()
+kipp_args = mkipp2.KippArgs()
 fig, ax = plt.subplots()
 profile_paths = mesa_data.get_profile_paths(["LOGS"])
 # if data is distributed among several history.data files, you can provide them
@@ -215,7 +213,7 @@ different evolutionary stages. This can be achieved by creating a
 single `KippArgs` object and calling `kipp_plot` on various subaxes
 
 ```python
-import mkipp
+import mkipp2
 import kipp_data
 import mesa_data
 import matplotlib.pyplot as plt
@@ -227,10 +225,13 @@ ax2 = fig.add_subplot(spec[0, 1])
 ax3 = fig.add_subplot(spec[0, 2])
 ax4 = fig.add_subplot(spec[0, 3])
 
-kipp_args = mkipp.KippArgs(save_file=False, xaxis="star_age", decorate_plot=False)
-mkipp.kipp_plot(kipp_args, axis=ax1)
-mkipp.kipp_plot(kipp_args, axis=ax2)
-kipp_plot = mkipp.kipp_plot(kipp_args, axis=ax3)
+kipp_args = mkipp2.KippArgs(xaxis="star_age")
+mkipp2.kipp_plot(kipp_args, axis=ax1,
+                 save_file=False, decorate_plot=False)
+mkipp2.kipp_plot(kipp_args, axis=ax2,
+                 save_file=False, decorate_plot=False, show_mixing_legend=False)
+kipp_plot = mkipp2.kipp_plot(kipp_args, axis=ax3,
+                             save_file=False, decorate_plot=False, show_mixing_legend=False)
 cbar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 cbar.set_label(r"$\log_{10}|\epsilon_{\rm nuc}|$")
 

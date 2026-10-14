@@ -10,7 +10,8 @@ from matplotlib.patches import PathPatch
 mkipp.kipp_plot(mkipp.KippArgs())
 
 # specify xrange and filename
-mkipp.kipp_plot(mkipp.KippArgs(save_filename="Kippenhahn2.png", xlims=[300, 600]))
+mkipp.kipp_plot(mkipp.KippArgs(xlims=[300, 600]),
+                save_filename="Kippenhahn2.png")
 
 # plot of Helium abundance against time, independent decoration
 fig, axis = plt.subplots()
@@ -25,9 +26,8 @@ kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
                                            time_units="Myr",
                                            identifier="y",
                                            log10_on_data=False,
-                                           levels=np.arange(0.0, 1.001, 0.01),
-                                           decorate_plot=False,
-                                           save_file=False), axis=axis)
+                                           levels=np.arange(0.0, 1.001, 0.01)),
+                            axis=axis, decorate_plot=False, save_file=False)
 cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("Helium abundance")
 axis.set_xlabel("Time (Myr)")
@@ -44,10 +44,9 @@ history = mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age"])
 max_age = max(history.get("star_age"))
 kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
                                            time_units="yr",
-                                           function_on_xaxis=lambda x: np.log10(max_age+0.01 - x),
-                                           decorate_plot=False,
-                                           save_file=False), axis=axis)
-cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
+                                           function_on_xaxis=lambda x: np.log10(max_age+0.01 - x)),
+                            decorate_plot=False, save_file=False, axis=axis)
+cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 cbar.set_label("log |eps_nuc|")
 axis.set_xlabel("log (tf-t) [yrs]")
 axis.set_ylabel("Mass (solar masses)")
@@ -69,10 +68,8 @@ def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
         return np.log10(data)
     return data
 
-
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(extractor=g_extractor,
-                                           decorate_plot=False,
-                                           save_file=False), axis=axis)
+kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(extractor=g_extractor),
+                            decorate_plot=False, save_file=False, axis=axis)
 cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("log g")
 axis.set_xlabel("model_number")
@@ -138,17 +135,17 @@ fig.tight_layout()
 fig.savefig("Kippenhahn6.png")
 
 # create a multi-panel plot
-fig = plt.figure()
-spec = fig.add_gridspec(ncols=4, nrows=1, wspace=0.2, width_ratios=[5, 5, 5, 1])
+fig = plt.figure(figsize=(8, 5), layout="constrained")
+spec = fig.add_gridspec(ncols=4, nrows=1, wspace=0.05, width_ratios=[5, 5, 5, 1])
 ax1 = fig.add_subplot(spec[0, 0])
 ax2 = fig.add_subplot(spec[0, 1])
 ax3 = fig.add_subplot(spec[0, 2])
 ax4 = fig.add_subplot(spec[0, 3])
 
-kipp_args = mkipp.KippArgs(save_file=False, xaxis="star_age", decorate_plot=False)
-mkipp.kipp_plot(kipp_args, axis=ax1)
-mkipp.kipp_plot(kipp_args, axis=ax2)
-kipp_plot = mkipp.kipp_plot(kipp_args, axis=ax3)
+kipp_args = mkipp.KippArgs(xaxis="star_age")
+mkipp.kipp_plot(kipp_args, axis=ax1, save_file=False, decorate_plot=False)
+mkipp.kipp_plot(kipp_args, axis=ax2, save_file=False, decorate_plot=False, show_mixing_legend=False)
+kipp_plot = mkipp.kipp_plot(kipp_args, axis=ax3, save_file=False, decorate_plot=False, show_mixing_legend=False)
 cbar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 #cbar.ax.set_yticklabels(['0', '','2','','4','','6','','8',''])
 cbar.set_label(r"$\log_{10}|\epsilon_{\rm nuc}|$")
