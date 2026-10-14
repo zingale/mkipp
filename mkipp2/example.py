@@ -46,7 +46,7 @@ kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
                                            time_units="yr",
                                            function_on_xaxis=lambda x: np.log10(max_age+0.01 - x)),
                             decorate_plot=False, save_file=False, axis=axis)
-cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
+cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("log |eps_nuc|")
 axis.set_xlabel("log (tf-t) [yrs]")
 axis.set_ylabel("Mass (solar masses)")
@@ -67,6 +67,7 @@ def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
     if log10_on_data:
         return np.log10(data)
     return data
+
 
 kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(extractor=g_extractor),
                             decorate_plot=False, save_file=False, axis=axis)
