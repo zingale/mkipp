@@ -1,35 +1,33 @@
 #!/usr/bin/env python
 """Demonstrate Kippenhahn plots and custom data extraction from MESA output."""
 
-import kipp_data
+import mkipp2
 import matplotlib.pyplot as plt
-import mesa_data
-import mkipp
 import numpy as np
 from matplotlib.patches import PathPatch
 
 # simple example (saves to default filename Kippenhahn.png)
-mkipp.kipp_plot(mkipp.KippArgs())
+mkipp2.kipp_plot(mkipp2.KippArgs())
 
 # specify xrange and filename
-mkipp.kipp_plot(mkipp.KippArgs(xlims=[300, 600]),
+mkipp2.kipp_plot(mkipp2.KippArgs(xlims=[300, 600]),
                 save_filename="Kippenhahn2.png")
 
 # plot of Helium abundance against time, independent decoration
 fig, axis = plt.subplots()
 
-# mkipp.kipp_plot returns an object containing
+# mkipp2.kipp_plot returns an object containing
 #   kipp_plot.contour_plot : the return value of matplotlibs contourf. Can be
 #                            used to create a colorbar with plt.colorbar()
 #   kipp_plot.histories    : list of history files read. data can be accessed
 #                            from this using the get("column_name") function
 #   kipp_plot.xlims        : limits of data in x coordinate
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
-                                           time_units="Myr",
-                                           identifier="y",
-                                           log10_on_data=False,
-                                           levels=np.arange(0.0, 1.001, 0.01)),
-                            axis=axis, decorate_plot=False, save_file=False)
+kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
+                                             time_units="Myr",
+                                             identifier="y",
+                                             log10_on_data=False,
+                                             levels=np.arange(0.0, 1.001, 0.01)),
+                             axis=axis, decorate_plot=False, save_file=False)
 cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("Helium abundance")
 axis.set_xlabel("Time (Myr)")
@@ -42,12 +40,13 @@ fig.savefig("Kippenhahn3.png")
 fig, axis = plt.subplots()
 
 # only need to read star_age column first
-history = mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age"])
+history = mkipp2.mesa_data.MesaData("LOGS/history.data",
+                                    read_data_cols=["star_age"])
 max_age = max(history.get("star_age"))
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(xaxis="star_age",
-                                           time_units="yr",
-                                           function_on_xaxis=lambda x: np.log10(max_age+0.01 - x)),
-                            decorate_plot=False, save_file=False, axis=axis)
+kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
+                                             time_units="yr",
+                                             function_on_xaxis=lambda x: np.log10(max_age+0.01 - x)),
+                             decorate_plot=False, save_file=False, axis=axis)
 cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("log |eps_nuc|")
 axis.set_xlabel("log (tf-t) [yrs]")
@@ -72,8 +71,8 @@ def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
     return data
 
 
-kipp_plot = mkipp.kipp_plot(mkipp.KippArgs(extractor=g_extractor),
-                            decorate_plot=False, save_file=False, axis=axis)
+kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(extractor=g_extractor),
+                             decorate_plot=False, save_file=False, axis=axis)
 cbar = plt.colorbar(kipp_plot.contour_plot, pad=0.05)
 cbar.set_label("log g")
 axis.set_xlabel("model_number")
@@ -82,9 +81,9 @@ fig.tight_layout()
 fig.savefig("Kippenhahn5.png")
 
 # Reading out mixing regions and data, and plotting independently
-kipp_args = mkipp.KippArgs()
+kipp_args = mkipp2.KippArgs()
 fig, axis = plt.subplots()
-profile_paths = mesa_data.get_profile_paths(["LOGS"])
+profile_paths = mkipp2.mesa_data.get_profile_paths(["LOGS"])
 
 # if data is distributed among several history.data files, you can provide them
 history_paths = ["LOGS/history.data"]
@@ -96,7 +95,7 @@ history_paths = ["LOGS/history.data"]
 #   xyz_data.Y     : 2D array of xaxis values of profile data
 #   xyz_data.Z     : 2D array of xaxis values of profile data
 # the last three can be used as inputs for matplotlib contour or contourf
-xyz_data = kipp_data.get_xyz_data(profile_paths, kipp_args)
+xyz_data = mkipp2.kipp_data.get_xyz_data(profile_paths, kipp_args)
 
 # read mixing regions
 # kipp_data.get_mixing_zones returns an object containing
@@ -107,8 +106,8 @@ xyz_data = kipp_data.get_xyz_data(profile_paths, kipp_args)
 #   mixing_zones.y_coords  : y coordinates for points at the surface
 #   mixing_zones.histories : mesa_data history files to access additional data
 # the last three can be used as inputs for matplotlib contour or contourf
-mixing_zones = kipp_data.get_mixing_zones(history_paths, kipp_args,
-                                          xlims=xyz_data.xlims)
+mixing_zones = mkipp2.kipp_data.get_mixing_zones(history_paths, kipp_args,
+                                                 xlims=xyz_data.xlims)
 
 # just plot convection, overshooting and semiconvection
 for i, zone in enumerate(mixing_zones.zones):
@@ -146,16 +145,16 @@ ax2 = fig.add_subplot(spec[0, 1])
 ax3 = fig.add_subplot(spec[0, 2])
 ax4 = fig.add_subplot(spec[0, 3])
 
-kipp_args = mkipp.KippArgs(xaxis="star_age")
-mkipp.kipp_plot(kipp_args, axis=ax1, save_file=False, decorate_plot=False)
-mkipp.kipp_plot(kipp_args, axis=ax2, save_file=False, decorate_plot=False, show_mixing_legend=False)
-kipp_plot = mkipp.kipp_plot(kipp_args, axis=ax3, save_file=False, decorate_plot=False, show_mixing_legend=False)
+kipp_args = mkipp2.KippArgs(xaxis="star_age")
+mkipp2.kipp_plot(kipp_args, axis=ax1, save_file=False, decorate_plot=False)
+mkipp2.kipp_plot(kipp_args, axis=ax2, save_file=False, decorate_plot=False, show_mixing_legend=False)
+kipp_plot = mkipp2.kipp_plot(kipp_args, axis=ax3, save_file=False, decorate_plot=False, show_mixing_legend=False)
 cbar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 #cbar.ax.set_yticklabels(['0', '','2','','4','','6','','8',''])
 cbar.set_label(r"$\log_{10}|\epsilon_{\rm nuc}|$")
 
-history = mesa_data.MesaData("LOGS/history.data",
-                             read_data_cols=["star_age", "center_h1", "center_he4"])
+history = mkipp2.mesa_data.MesaData("LOGS/history.data",
+                                    read_data_cols=["star_age", "center_h1", "center_he4"])
 for i, center_h1 in enumerate(history.get("center_h1")):
     if center_h1 < 1e-3:
         age_tams = history.get("star_age")[i] / 1e6
