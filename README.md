@@ -8,7 +8,7 @@ Kippenhahn plotter for MESA.
 
 > [!IMPORTANT]
 > Your `history_columns.list` needs to have `mixing_regions` and
-> `mix_relr_regions` specified for MESA to output the neccesary data
+> `mix_relr_regions` specified for MESA to output the necessary data
 > of the mixing regions in terms of mass and radius respectively.
 > Also, newer versions of MESA include significantly less output in
 > the profile files, so values such as `eps_nuc` need to be added to
@@ -65,7 +65,7 @@ fig, axis = plt.subplots()
 # mkipp2.kipp_plot returns an object containing
 #   kipp_plot.contour_plot : the return value of matplotlibs contourf. Can be
 #                            used to create a colorbar with plt.colorbar()
-#   kipp_plot.histories    : list of history files read. data can be accesed from this
+#   kipp_plot.histories    : list of history files read. data can be accessed from this
 #                            using the get("column_name") function
 #   kipp_plot.xlims        : limits of data in x coordinate
 kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
