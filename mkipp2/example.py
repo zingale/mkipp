@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Demonstrate Kippenhahn plots and custom data extraction from MESA output."""
+
 import kipp_data
 import matplotlib.pyplot as plt
 import mesa_data
@@ -59,6 +61,7 @@ msun = 1.99e33
 rsun = 6.96e10
 cgrav = 6.67e-8
 def g_extractor(identifier, log10_on_data, prof, return_data_columns=False):
+    """Return gravitational acceleration, its logarithm, or required columns."""
     if return_data_columns:
         return ["radius", "mass"]
     data = cgrav*prof.get("mass")*msun/(prof.get("radius")*rsun)**2

@@ -294,7 +294,6 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     their overlapping vertical intervals into :class:`Zone` boundaries.
 
     """
-
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
         if kipp_args.time_units == "1000 yr":
@@ -476,7 +475,6 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     without normalization by their surface values.
 
     """
-
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
         if kipp_args.time_units == "1000 yr":

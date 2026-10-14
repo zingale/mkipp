@@ -67,7 +67,6 @@ class MesaData:
                  only_read_header=False, read_data=True, read_data_cols=None,
                  clean_data=True, sample_every_n=1):
         """Read file metadata and optionally load the requested columns."""
-
         if read_data_cols is None:
             read_data_cols = []
 
@@ -160,7 +159,6 @@ class MesaData:
         loaded column. Cleanup and sampling are skipped if the file has no
         ``model_number`` data column, as is usual for profiles.
         """
-
         # always include model_number if its part of the data
         if "model_number" not in column_names and "model_number" in self.columns:
             column_names.append("model_number")
@@ -273,7 +271,6 @@ def get_profile_paths(logs_dirs=None):
     implementation assumes each index contains at least two data rows;
     single-entry and empty indices are not handled.
     """
-
     if logs_dirs is None:
         logs_dirs = ["LOGS"]
 

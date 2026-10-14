@@ -197,6 +197,7 @@ class KippArgs:
     unnormalized mass/radius coordinates, and core-mass overlays remain in
     solar masses even when ``yaxis_normalize`` is True.
     """
+
     def __init__(self, *,
                  logs_dirs=None,
                  profile_paths=None,
@@ -227,7 +228,6 @@ class KippArgs:
                  radius_tolerance=0.0000001,
                  xlims=None):
         """Store plot settings and prepare profile and mixing-region data."""
-
         if logs_dirs is None:
             logs_dirs = ['LOGS']
 
@@ -339,7 +339,6 @@ def kipp_plot(kipp_args, *,
     saves the current pyplot figure, which need not be the figure owning
     a supplied ``axis``. File output occurs after the optional show call.
     """
-
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
         if kipp_args.time_units == "1000 yr":
