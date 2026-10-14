@@ -23,8 +23,20 @@ The Kippenhahn plotter consists of 3 files:
 Although lower-level functions are provided that allow plotting
 directly into a matplotlib axis object, a high level function produces
 a fully decorated plot. The repository comes with some sample MESA
-data for a 20 Msun star, which if used with the following python
-script
+data for a 20 Msun star in `example/LOGS/`. From the repository root,
+install the library and run all examples with:
+
+```sh
+python -m pip install .
+cd example
+python example.py
+```
+
+The Python snippets below also assume `example/` is the working directory,
+since the default input directory is `LOGS/`. For other data locations,
+pass `logs_dirs=["path/to/LOGS"]` to `mkipp2.KippArgs()`.
+
+The following Python script
 
 ```python
 import mkipp2
@@ -50,7 +62,7 @@ which results in the following plot
 Several options can be passed to `mkipp2.KippArgs()` --- see the docstring
 for details.
 
-Also a matplotlib `Axis` object can be passed to `kipp_plot`. This allows
+Also a matplotlib `Axes` object can be passed to `kipp_plot`. This allows
 plot decorations to be made independently, or can be also used to make
 a plot with many different Kippenhahn plots. As an example, the
 following plots evolution of Helium abundance with respect to time for
@@ -79,6 +91,7 @@ cbar.set_label("Helium abundance")
 axis.set_xlabel("Time (Myr)")
 axis.set_ylabel("Mass (solar masses)")
 axis.set_xlim(kipp_plot.xlims)
+fig.tight_layout()
 fig.savefig("Kippenhahn3.png")
 ```
 
@@ -86,18 +99,17 @@ which results in the following plot
 ![kipp](images/Kippenhahn3.png)
 
 It is also possible to apply a function to the xaxis. This can be used
-to generate a log(tf-t) plot. Here we also make use of the mesa_data
+to generate a log(tf-t) plot. Here we also make use of the `MesaData`
 class to read out the maximum age first.
 
 ```python
 import mkipp2
 import matplotlib.pyplot as plt
 import numpy as np
-import mesa_data
 # read out max age of star first, then create a log(tf-t) plot
 fig, axis = plt.subplots()
 # only need to read star_age column first
-history = mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age"])
+history = mkipp2.mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age"])
 max_age = max(history.get("star_age"))
 kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
                                              time_units="yr",
@@ -107,6 +119,7 @@ cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 cbar.set_label("log |eps_nuc|")
 axis.set_xlabel("log (tf-t) [yrs]")
 axis.set_ylabel("Mass (solar masses)")
+fig.tight_layout()
 fig.savefig("Kippenhahn4.png")
 ```
 
@@ -140,7 +153,8 @@ bar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 bar.set_label("log g")
 axis.set_xlabel("model_number")
 axis.set_ylabel("Mass (solar masses)")
-plt.savefig("Kippenhahn5.png")
+fig.tight_layout()
+fig.savefig("Kippenhahn5.png")
 ```
 which results in the following plot
 ![kipp](images/Kippenhahn5.png)
@@ -151,25 +165,23 @@ level functions and plotted in an arbitrary form. The following is an
 
 ```python
 import mkipp2
-import kipp_data
-import mesa_data
 import matplotlib.pyplot as plt
 from matplotlib.patches import PathPatch
 import numpy as np
 # Reading out mixing regions and data, and plotting independently
 kipp_args = mkipp2.KippArgs()
-fig, ax = plt.subplots()
-profile_paths = mesa_data.get_profile_paths(["LOGS"])
+fig, axis = plt.subplots()
+profile_paths = mkipp2.mesa_data.get_profile_paths(["LOGS"])
 # if data is distributed among several history.data files, you can provide them
 history_paths = ["LOGS/history.data"]
 # read profile data
 # kipp_data.get_xyz_data returns an object containing
 #   xyz_data.xlims : limits of data in x coordinate
-#   xyz_data.X     : 2D array of xaxis values of profile data
-#   xyz_data.Y     : 2D array of xaxis values of profile data
-#   xyz_data.Z     : 2D array of xaxis values of profile data
+#   xyz_data.X     : 2D array of horizontal coordinates
+#   xyz_data.Y     : 2D array of vertical coordinates (mass or radius)
+#   xyz_data.Z     : 2D array of interpolated values from the extractor
 # the last three can be used as inputs for matplotlib contour or contourf
-xyz_data = kipp_data.get_xyz_data(profile_paths, kipp_args)
+xyz_data = mkipp2.kipp_data.get_xyz_data(profile_paths, kipp_args)
 # read mixing regions
 # kipp_data.get_mixing_zones returns an object containing
 #   mixing_zones.zones     : matplotlib Path objects for each mixing zone.
@@ -178,8 +190,7 @@ xyz_data = kipp_data.get_xyz_data(profile_paths, kipp_args)
 #   mixing_zones.x_coords  : x coordinates for points at the surface
 #   mixing_zones.y_coords  : y coordinates for points at the surface
 #   mixing_zones.histories : mesa_data history files to access additional data
-# the last three can be used as inputs for matplotlib contour or contourf
-mixing_zones = kipp_data.get_mixing_zones(history_paths, kipp_args, xlims=xyz_data.xlims)
+mixing_zones = mkipp2.kipp_data.get_mixing_zones(history_paths, kipp_args, xlims=xyz_data.xlims)
 # just plot convection, overshooting and semiconvection
 for i,zone in enumerate(mixing_zones.zones):
     color = ""
@@ -203,6 +214,7 @@ axis.set_xlabel("model_number")
 axis.set_ylabel("Mass (solar masses)")
 axis.set_xlim(0,max(mixing_zones.x_coords))
 axis.set_ylim(0,max(mixing_zones.y_coords))
+fig.tight_layout()
 fig.savefig("Kippenhahn6.png")
 ```
 which gives the following ugly result (just an example!)
@@ -214,12 +226,10 @@ single `KippArgs` object and calling `kipp_plot` on various subaxes
 
 ```python
 import mkipp2
-import kipp_data
-import mesa_data
 import matplotlib.pyplot as plt
 
-fig = plt.figure()
-spec = fig.add_gridspec(ncols=4, nrows=1, wspace=0.2, width_ratios=[5, 5, 5, 1])
+fig = plt.figure(figsize=(8, 5), layout="constrained")
+spec = fig.add_gridspec(ncols=4, nrows=1, wspace=0.05, width_ratios=[5, 5, 5, 1])
 ax1 = fig.add_subplot(spec[0, 0])
 ax2 = fig.add_subplot(spec[0, 1])
 ax3 = fig.add_subplot(spec[0, 2])
@@ -235,7 +245,7 @@ kipp_plot = mkipp2.kipp_plot(kipp_args, axis=ax3,
 cbar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 cbar.set_label(r"$\log_{10}|\epsilon_{\rm nuc}|$")
 
-history = mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age", "center_h1", "center_he4"])
+history = mkipp2.mesa_data.MesaData("LOGS/history.data", read_data_cols=["star_age", "center_h1", "center_he4"])
 for i, center_h1 in enumerate(history.get("center_h1")):
     if center_h1 < 1e-3:
         age_tams = history.get("star_age")[i]/1e6

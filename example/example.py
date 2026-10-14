@@ -91,9 +91,9 @@ history_paths = ["LOGS/history.data"]
 # read profile data
 # kipp_data.get_xyz_data returns an object containing
 #   xyz_data.xlims : limits of data in x coordinate
-#   xyz_data.X     : 2D array of xaxis values of profile data
-#   xyz_data.Y     : 2D array of xaxis values of profile data
-#   xyz_data.Z     : 2D array of xaxis values of profile data
+#   xyz_data.X     : 2D array of horizontal coordinates
+#   xyz_data.Y     : 2D array of vertical coordinates (mass or radius)
+#   xyz_data.Z     : 2D array of interpolated values from the extractor
 # the last three can be used as inputs for matplotlib contour or contourf
 xyz_data = mkipp2.kipp_data.get_xyz_data(profile_paths, kipp_args)
 
@@ -105,7 +105,6 @@ xyz_data = mkipp2.kipp_data.get_xyz_data(profile_paths, kipp_args)
 #   mixing_zones.x_coords  : x coordinates for points at the surface
 #   mixing_zones.y_coords  : y coordinates for points at the surface
 #   mixing_zones.histories : mesa_data history files to access additional data
-# the last three can be used as inputs for matplotlib contour or contourf
 mixing_zones = mkipp2.kipp_data.get_mixing_zones(history_paths, kipp_args,
                                                  xlims=xyz_data.xlims)
 
