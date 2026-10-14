@@ -1,0 +1,31 @@
+name: example
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  example:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          cache: "pip"
+
+      - name: Install mkipp2
+        run: pip install .
+
+      - name: Run the example
+        run: |
+          cd example
+          python example.py
+
