@@ -501,7 +501,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     prof_include = [False] * len(profile_paths)
     for i, profile_name in enumerate(profile_paths):
         try:
-            prof = md.MesaData(profile_name, only_read_header = True)
+            prof = md.MesaData(profile_name, only_read_header=True)
             if not kipp_args.yaxis_normalize:
                 if kipp_args.yaxis == "mass":
                     max_y = max(prof.header['star_mass'],max_y)
