@@ -152,10 +152,6 @@ class KippArgs:
     yaxis : {'mass', 'radius'}, optional
         Vertical coordinate, in solar masses or solar radii. Defaults to
         ``'mass'``.
-    yaxis_normalize : bool, optional
-        Use a unit surface coordinate for mixing regions and a contour grid
-        spanning zero to one. Default is False. See the normalization
-        limitation in Notes.
     show_conv, show_therm, show_semi, show_over : bool, optional
         Display convection, thermohaline mixing, semiconvection, and
         overshooting boundaries, respectively. Each defaults to True.
@@ -193,9 +189,6 @@ class KippArgs:
     reads the input files and computes both data products; changing input
     settings afterward does not recompute them.
 
-    Normalization is currently incomplete: profile interpolation still uses
-    unnormalized mass/radius coordinates, and core-mass overlays remain in
-    solar masses even when ``yaxis_normalize`` is True.
     """
 
     def __init__(self, *,
@@ -216,7 +209,6 @@ class KippArgs:
                  time_units="Myr",
                  function_on_xaxis=lambda x: x,
                  yaxis="mass",
-                 yaxis_normalize=False,
                  show_conv=True,
                  show_therm=True,
                  show_semi=True,
@@ -254,7 +246,6 @@ class KippArgs:
         self.time_units = time_units
         self.function_on_xaxis = function_on_xaxis
         self.yaxis = yaxis
-        self.yaxis_normalize = yaxis_normalize
         self.show_conv = show_conv
         self.show_therm = show_therm
         self.show_semi = show_semi
@@ -479,15 +470,9 @@ def kipp_plot(kipp_args, *,
         else:
             axis.set_xlabel(r'$Model Number$')
         if kipp_args.yaxis == "radius":
-            if kipp_args.yaxis_normalize:
-                axis.set_ylabel(r'$r/R$')
-            else:
-                axis.set_ylabel(r'$r/R_\odot$')
+            axis.set_ylabel(r'$r/R_\odot$')
         else:
-            if kipp_args.yaxis_normalize:
-                axis.set_ylabel(r'$m/M$')
-            else:
-                axis.set_ylabel(r'$m/M_\odot$')
+            axis.set_ylabel(r'$m/M_\odot$')
 
     if kipp_args.xlims is not None:
         axis.set_xlim(kipp_args.xlims)

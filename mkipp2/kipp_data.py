@@ -14,7 +14,7 @@ class ZoneBlock:
 
     The mixing type and vertical bounds at the current sample describe the
     entire interval from the previous x coordinate to the current one. Bounds
-    are enclosed mass, radius, or their normalized equivalents.
+    are enclosed mass or radius in solar units.
 
     Parameters
     ----------
@@ -271,7 +271,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
         History file paths in the order to concatenate.
     kipp_args : mkipp.KippArgs
         Plot settings, including axis transforms, data cleaning, extra
-        history columns, normalization, and thickness tolerances.
+        history columns and thickness tolerances.
     xlims : tuple of float, optional
         Inclusive limits in transformed x coordinates used to restrict
         block construction, retaining neighboring intervals at the
@@ -282,7 +282,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     MixingZones
         Named tuple with ``zones`` (Matplotlib paths), corresponding
         ``mix_types``, transformed ``x_coords``, surface ``y_coords`` (mass,
-        radius, or one when normalized), and the loaded ``histories``.
+        radius in solar units), and the loaded ``histories``.
         Surface coordinates and histories retain the full input range even
         when ``xlims`` restricts block construction.
 
@@ -328,9 +328,7 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
         x_coords.extend(history.get(kipp_args.xaxis) / xaxis_divide)
     x_coords = kipp_args.function_on_xaxis(np.array(x_coords))
     y_coords = []
-    if kipp_args.yaxis_normalize:
-        y_coords = [1.0]*len(x_coords)
-    elif kipp_args.yaxis == "radius":
+    if kipp_args.yaxis == "radius":
         for history in histories:
             y_coords.extend(np.power(10, history.get('log_R')))
     else:
@@ -473,10 +471,6 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     Values outside each profile's coordinate range use endpoint values;
     points above the stellar surface are not masked here.
 
-    With ``yaxis_normalize``, the common grid spans zero to one, but the
-    profile mass/radius coordinates are currently passed to interpolation
-    without normalization by their surface values.
-
     """
     xaxis_divide = kipp_args.xaxis_divide
     if kipp_args.xaxis == "star_age":
@@ -496,18 +490,14 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     print("Reading profile data")
 
     # read headers to determine required range in y coordinate
-    if kipp_args.yaxis_normalize:
-        max_y = 1.0
-
     prof_include = [False] * len(profile_paths)
     for i, profile_name in enumerate(profile_paths):
         try:
             prof = md.MesaData(profile_name, only_read_header=True)
-            if not kipp_args.yaxis_normalize:
-                if kipp_args.yaxis == "mass":
-                    max_y = max(prof.header['star_mass'], max_y)
-                elif kipp_args.yaxis == "radius":
-                    max_y = max(prof.header['photosphere_r'], max_y)
+            if kipp_args.yaxis == "mass":
+                max_y = max(prof.header['star_mass'], max_y)
+            elif kipp_args.yaxis == "radius":
+                max_y = max(prof.header['photosphere_r'], max_y)
             # if given xlims, filter out profiles out of range add one
             # profile to each side so data is shown at borders
             if xlims is not None:
