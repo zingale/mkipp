@@ -404,13 +404,13 @@ def kipp_plot(kipp_args, *,
             line  = 1
         # Thermohaline mixing
         elif mixing_zones.mix_types[i] == 5 and kipp_args.show_therm:
-            label = "Thermohaline mixing"
+            label = "Thermohaline"
             color = "Gold" #Salmon
             hatch = "||"
             line  = 1
         # Rotational mixing
         elif mixing_zones.mix_types[i] == 6 and kipp_args.show_rot:
-            label = "Rotational mixing"
+            label = "Rotational"
             color = "brown"
             hatch = "*"
             line  = 1
@@ -464,7 +464,7 @@ def kipp_plot(kipp_args, *,
         if mixing_handles:
             axis.legend(handles=[mixing_handles[key]
                                  for key in sorted(mixing_handles)],
-                        loc="best")
+                        loc="best", fontsize="small")
 
     if decorate_plot:
 
