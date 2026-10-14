@@ -211,7 +211,7 @@ class KippArgs:
                  log_levels=True,
                  num_levels=8,
                  xaxis="model_number",
-                 xaxis_divide = 1.0,
+                 xaxis_divide=1.0,
                  time_units="Myr",
                  function_on_xaxis=lambda x: x,
                  yaxis="mass",
@@ -335,9 +335,11 @@ def kipp_plot(kipp_args, *,
     colorbar, and a mixing legend are added only when ``decorate_plot`` is
     True. Each displayed mixing type appears once in the legend.
 
-    Display and file output use pyplot. In particular, ``save_file=True``
-    saves the current pyplot figure, which need not be the figure owning
-    a supplied ``axis``. File output occurs after the optional show call.
+    Display and file output use pyplot. In particular,
+    ``save_file=True`` saves the current pyplot figure, which need not
+    be the figure owning a supplied ``axis``. File output occurs after
+    the optional show call.
+
     """
 
     xaxis_divide = kipp_args.xaxis_divide
@@ -367,10 +369,10 @@ def kipp_plot(kipp_args, *,
                                         kipp_args.num_levels)
             else:
                 levels = get_levels_linear(np.nanmin(xyz_data.Z[:, :]),
-                                           np.nanmax(xyz_data.Z[:,:]),
+                                           np.nanmax(xyz_data.Z[:, :]),
                                            kipp_args.num_levels)
         # make plot
-        contour_plot = axis.contourf(xyz_data.X, xyz_data.Y, xyz_data.Z[:, :], \
+        contour_plot = axis.contourf(xyz_data.X, xyz_data.Y, xyz_data.Z[:, :],
                                      cmap=kipp_args.contour_colormap,
                                      levels=levels, antialiased=False)
     else:
@@ -389,31 +391,31 @@ def kipp_plot(kipp_args, *,
             label = "Convection"
             color = "Chartreuse"
             hatch = "//"
-            line  = 1
+            line = 1
         # Overshooting
         elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
             label = "Overshooting"
             color = "purple"
             hatch = "x"
-            line  = 1
+            line = 1
         # Semiconvective mixing
         elif mixing_zones.mix_types[i] == 4 and kipp_args.show_semi:
             label = "Semiconvection"
             color = "red"
             hatch = "\\\\"
-            line  = 1
+            line = 1
         # Thermohaline mixing
         elif mixing_zones.mix_types[i] == 5 and kipp_args.show_therm:
             label = "Thermohaline"
-            color = "Gold" #Salmon
+            color = "Gold"  # Salmon
             hatch = "||"
-            line  = 1
+            line = 1
         # Rotational mixing
         elif mixing_zones.mix_types[i] == 6 and kipp_args.show_rot:
             label = "Rotational"
             color = "brown"
             hatch = "*"
-            line  = 1
+            line = 1
         # Anonymous mixing
         else:
             label = "_nolegend_"

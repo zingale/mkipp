@@ -121,8 +121,7 @@ class MesaData:
 
         if len(read_data_cols) == 0:
             read_data_cols = columns
-        self.read_data(read_data_cols, clean_data = clean_data)
-
+        self.read_data(read_data_cols, clean_data=clean_data)
 
     def read_data(self, column_names, clean_data=True, sample_every_n=1):
         """Load selected columns, optionally cleaning and sampling history rows.
@@ -193,7 +192,7 @@ class MesaData:
             max_model_number = model_number[-1]
 
             # last entry is valid, start from there and remove repeats
-            for i in range(len(model_number)-2,-1,-1):
+            for i in range(len(model_number)-2, -1, -1):
                 if model_number[i] >= max_model_number:
                     # exclude this point
                     mask[i] = 1
@@ -211,7 +210,7 @@ class MesaData:
             # create a mask
             model_number = self.data["model_number"]
             mask = np.zeros(len(model_number))
-            for i in range(1,len(model_number)-1):
+            for i in range(1, len(model_number)-1):
                 if (i+1) % sample_every_n != 0:
                     # exclude this point
                     mask[i] = 1
@@ -280,7 +279,8 @@ def get_profile_paths(logs_dirs=None):
     profile_paths = []
     for log_dir in logs_dirs:
         print(log_dir, logs_dirs)
-        model_number, paths = np.loadtxt(log_dir+"/profiles.index", skiprows = 1, usecols = (0,2), unpack = True)
+        model_number, paths = np.loadtxt(log_dir+"/profiles.index",
+                                         skiprows=1, usecols=(0, 2), unpack=True)
         mask = np.zeros(len(paths))
         max_model_number = model_number[-1]
 
