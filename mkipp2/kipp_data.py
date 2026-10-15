@@ -481,8 +481,12 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
         Named tuple containing ``xlims`` (the minimum and maximum selected
         x coordinates) and ``X``, ``Y``, ``Z`` arrays of shape
         ``(yresolution, number_of_selected_profiles)``. Each column
-        represents one profile. With no selected profiles, the arrays have
-        zero columns and the returned limits are ``(inf, -inf)``.
+        represents one profile.
+
+    Raises
+    ------
+    AssertionError
+        If fewer than two profiles remain after header reading and selection.
 
     Notes
     -----
@@ -538,6 +542,10 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     # Filter out profiles. This will also remove profiles that failed
     # to load
     profile_paths = [pp for (pp, pi) in zip(profile_paths, prof_include) if pi]
+    assert len(profile_paths) >= 2, (
+        "At least 2 profiles are required after header reading and selection; "
+        f"got {len(profile_paths)}."
+    )
 
     # array to interpolate data in the yaxis
     y_interp = np.array([max_y * j / (kipp_args.yresolution-1) for j in range(kipp_args.yresolution)])
