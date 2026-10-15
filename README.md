@@ -85,8 +85,8 @@ fig, axis = plt.subplots()
 kipp_plot = mkipp2.kipp_plot(mkipp2.KippArgs(xaxis="star_age",
                                              time_units="Myr",
                                              identifier="y",
-                                             log10_on_data=False,
-                                             levels=np.arange(0.0, 1.001, 0.01)),
+                                             log10_on_data=False),
+                             levels=np.arange(0.0, 1.001, 0.01),
                              decorate_plot=False, save_file=False, axis=axis)
 cbar = plt.colorbar(kipp_plot.contour_plot,pad=0.05)
 cbar.set_label("Helium abundance")

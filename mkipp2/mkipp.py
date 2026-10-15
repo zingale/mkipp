@@ -126,17 +126,6 @@ class KippArgs:
     log10_on_data : bool, optional
         Request logarithmic values from the extractor. Default is True.
         The default extractor computes ``log10(abs(data) + 1e-99)``.
-    contour_colormap : matplotlib.colors.Colormap, optional
-        Colormap for the filled contours. Defaults to ``'Blues'``.
-    levels : array_like, optional
-        Explicit, increasing contour levels. If None or empty, generate
-        levels from the extracted data.
-    log_levels : bool, optional
-        Use integer levels for logarithmic data when levels are generated.
-        Default is True. This setting does not transform the data.
-    num_levels : int, optional
-        Number of intervals used by the linear level generator. Defaults
-        to 8; the logarithmic level generator currently ignores this value.
     xaxis : {'model_number', 'star_age'}, optional
         Horizontal coordinate. Defaults to ``'model_number'``.
     xaxis_divide : float, optional
@@ -153,14 +142,6 @@ class KippArgs:
     yaxis : {'mass', 'radius'}, optional
         Vertical coordinate, in solar masses or solar radii. Defaults to
         ``'mass'``.
-    show_conv, show_therm, show_semi, show_over : bool, optional
-        Display convection, thermohaline mixing, semiconvection, and
-        overshooting boundaries, respectively. Each defaults to True.
-    show_rot : bool, optional
-        Display rotational mixing boundaries. Default is False.
-    core_masses : sequence of {'He', 'C', 'O'}, optional
-        Core masses to overlay when ``yaxis='mass'``. Defaults to all three;
-        an empty sequence suppresses them.
     yresolution : int, optional
         Number of vertical interpolation points; must be at least two.
         Defaults to 1000.
@@ -201,26 +182,17 @@ class KippArgs:
                  identifier="eps_nuc",
                  extractor=default_extractor,
                  log10_on_data=True,
-                 contour_colormap=plt.get_cmap("Blues"),
-                 levels=None,
-                 log_levels=True,
-                 num_levels=8,
                  xaxis="model_number",
                  xaxis_divide=1.0,
                  time_units="Myr",
                  function_on_xaxis=lambda x: x,
                  yaxis="mass",
-                 show_conv=True,
-                 show_therm=True,
-                 show_semi=True,
-                 show_over=True,
-                 show_rot=False,
-                 core_masses=None,
                  yresolution=1000,
                  mass_tolerance=0.0000001,
                  radius_tolerance=0.0000001,
                  xlims=None):
         """Store plot settings and prepare profile and mixing-region data."""
+
         if logs_dirs is None:
             logs_dirs = ['LOGS']
 
@@ -234,28 +206,12 @@ class KippArgs:
         self.identifier = identifier
         self.extractor = extractor
         self.log10_on_data = log10_on_data
-        self.contour_colormap = contour_colormap
 
-        if levels is None:
-            levels = []
-        self.levels = levels
-
-        self.log_levels = log_levels
-        self.num_levels = num_levels
         self.xaxis = xaxis
         self.xaxis_divide = xaxis_divide
         self.time_units = time_units
         self.function_on_xaxis = function_on_xaxis
         self.yaxis = yaxis
-        self.show_conv = show_conv
-        self.show_therm = show_therm
-        self.show_semi = show_semi
-        self.show_over = show_over
-        self.show_rot = show_rot
-
-        if core_masses is None:
-            core_masses = ["He", "C", "O"]
-        self.core_masses = core_masses
 
         self.yresolution = yresolution
         self.mass_tolerance = mass_tolerance
@@ -284,9 +240,19 @@ class KippArgs:
 
 def kipp_plot(kipp_args, *,
               axis=None,
+              contour_colormap=plt.get_cmap("Blues"),
+              core_masses=None,
               decorate_plot=True,
+              levels=None,
+              log_levels=True,
+              num_levels=8,
               show_mixing_legend=True,
               show_plot=False,
+              show_conv=True,
+              show_therm=True,
+              show_semi=True,
+              show_over=True,
+              show_rot=False,
               save_file=True,
               save_filename="Kippenhahn.png"):
     """Draw profile contours, mixing boundaries, and stellar structure.
@@ -298,12 +264,31 @@ def kipp_plot(kipp_args, *,
         mixing types, core-mass overlays, labels, display, and file output.
     axis : matplotlib.axes.Axes, optional
         Axes on which to draw. If None, create a figure and axes.
+    contour_colormap : matplotlib.colors.Colormap, optional
+        Colormap for the filled contours. Defaults to ``'Blues'``.
+    core_masses : sequence of {'He', 'C', 'O'}, optional
+        Core masses to overlay when ``yaxis='mass'``. Defaults to all three;
+        an empty sequence suppresses them.
     decorate_plot : bool, optional
         Add axis labels and a colorbar.  Default is True.
+    levels : array_like, optional
+        Explicit, increasing contour levels. If None or empty, generate
+        levels from the extracted data.
+    log_levels : bool, optional
+        Use integer levels for logarithmic data when levels are generated.
+        Default is True. This setting does not transform the data.
+    num_levels : int, optional
+        Number of intervals used by the linear level generator. Defaults
+        to 8; the logarithmic level generator currently ignores this value.
+    show_conv, show_therm, show_semi, show_over : bool, optional
+        Display convection, thermohaline mixing, semiconvection, and
+        overshooting boundaries, respectively. Each defaults to True.
     show_mixing_legend : bool, optional
         Add a legend showing the mixing types.  Default is True.
     show_plot : bool, optional
         Call ``pyplot.show()`` after plotting. Default is False.
+    show_rot : bool, optional
+        Display rotational mixing boundaries. Default is False.
     save_file : bool, optional
         Save the current pyplot figure after the optional show call.
         Default is True.
@@ -349,27 +334,32 @@ def kipp_plot(kipp_args, *,
 
     xyz_data = kipp_args.xyz_data
 
+    if levels is None:
+        levels = []
+
+    if core_masses is None:
+        core_masses = ["He", "C", "O"]
+
     # only plot if there is data
     if xyz_data.Z.size > 0:
         # Get levels if undefined
-        levels = kipp_args.levels
         if len(levels) == 0:
-            if kipp_args.log_levels:
+            if log_levels:
                 levels = get_levels_log(np.nanmin(xyz_data.Z[:, :]),
                                         np.nanmax(xyz_data.Z[:, :]),
-                                        kipp_args.num_levels)
+                                        num_levels)
             else:
                 levels = get_levels_linear(np.nanmin(xyz_data.Z[:, :]),
                                            np.nanmax(xyz_data.Z[:, :]),
-                                           kipp_args.num_levels)
+                                           num_levels)
         # make plot
         contour_plot = axis.contourf(xyz_data.X, xyz_data.Y, xyz_data.Z[:, :],
-                                     cmap=kipp_args.contour_colormap,
+                                     cmap=contour_colormap,
                                      levels=levels, antialiased=False)
     else:
         print("No profile data to plot!")
         contour_plot = axis.contourf([[None, None]], [[None, None]], [[None, None]],
-                                     cmap=kipp_args.contour_colormap,
+                                     cmap=contour_colormap,
                                      antialiased=False)
 
     mixing_zones = kipp_args.mixing_zones
@@ -378,31 +368,31 @@ def kipp_plot(kipp_args, *,
     for i, zone in enumerate(mixing_zones.zones):
         color = ""
         # Convective mixing
-        if mixing_zones.mix_types[i] == 1 and kipp_args.show_conv:
+        if mixing_zones.mix_types[i] == 1 and show_conv:
             label = "Convection"
             color = "Chartreuse"
             hatch = "//"
             line = 1
         # Overshooting
-        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
+        elif mixing_zones.mix_types[i] == 3 and show_over:
             label = "Overshooting"
             color = "purple"
             hatch = "x"
             line = 1
         # Semiconvective mixing
-        elif mixing_zones.mix_types[i] == 4 and kipp_args.show_semi:
+        elif mixing_zones.mix_types[i] == 4 and show_semi:
             label = "Semiconvection"
             color = "red"
             hatch = "\\\\"
             line = 1
         # Thermohaline mixing
-        elif mixing_zones.mix_types[i] == 5 and kipp_args.show_therm:
+        elif mixing_zones.mix_types[i] == 5 and show_therm:
             label = "Thermohaline"
             color = "Gold"  # Salmon
             hatch = "||"
             line = 1
         # Rotational mixing
-        elif mixing_zones.mix_types[i] == 6 and kipp_args.show_rot:
+        elif mixing_zones.mix_types[i] == 6 and show_rot:
             label = "Rotational"
             color = "brown"
             hatch = "*"
@@ -433,7 +423,7 @@ def kipp_plot(kipp_args, *,
     # add core masses
     if kipp_args.yaxis == "mass":
         field_name = ""
-        for core_mass in kipp_args.core_masses:
+        for core_mass in core_masses:
             if core_mass == "He":
                 field_name = "he_core_mass"
                 color = "C0:"
