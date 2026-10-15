@@ -384,7 +384,7 @@ def kipp_plot(kipp_args, *,
             hatch = "//"
             line = 1
         # Overshooting
-`<        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
+        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
             label = "Overshooting"
             color = "purple"
             hatch = "x"
