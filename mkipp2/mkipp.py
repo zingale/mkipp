@@ -191,8 +191,11 @@ class KippArgs:
                  mass_tolerance=0.0000001,
                  radius_tolerance=0.0000001,
                  xlims=None):
+        """Store plot settings and prepare profile and mixing-region
+        data.
 
-        """Store plot settings and prepare profile and mixing-region data."""
+        """
+
         if logs_dirs is None:
             logs_dirs = ['LOGS']
 
