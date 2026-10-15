@@ -254,6 +254,11 @@ def get_profile_paths(logs_dirs=None):
         Paths of the form ``<log_dir>/profile<number>.data``, concatenated
         in directory order. Surviving entries retain their index-file order.
 
+    Raises
+    ------
+    ValueError
+        If any index contains no profile entries.
+
     Notes
     -----
     Read model numbers and profile numbers from the first and third index
@@ -262,9 +267,8 @@ def get_profile_paths(logs_dirs=None):
     model number. Cleanup is independent for each directory; entries from
     different directories are neither sorted nor deduplicated together.
 
-    Profile files are not opened or checked for existence. The current
-    implementation assumes each index contains at least two data rows;
-    single-entry and empty indices are not handled.
+    Profile files are not opened or checked for existence. Each index must
+    contain at least one data row.
     """
     if logs_dirs is None:
         logs_dirs = ["LOGS"]
@@ -272,8 +276,11 @@ def get_profile_paths(logs_dirs=None):
     profile_paths = []
     for log_dir in logs_dirs:
         print(log_dir, logs_dirs)
-        model_number, paths = np.loadtxt(log_dir+"/profiles.index",
-                                         skiprows=1, usecols=(0, 2), unpack=True)
+        index_path = log_dir+"/profiles.index"
+        model_number, paths = np.loadtxt(index_path, skiprows=1,
+                                         usecols=(0, 2), unpack=True, ndmin=2)
+        if paths.size == 0:
+            raise ValueError(f"Profile index {index_path} contains no profile entries.")
         mask = np.zeros(len(paths))
         max_model_number = model_number[-1]
 
