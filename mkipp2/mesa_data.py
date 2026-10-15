@@ -25,10 +25,6 @@ class MesaData:
     clean_data : bool, optional
         Remove history rows superseded by later backups or restarts.
         Default is True. Applies only when a ``model_number`` column exists.
-    sample_every_n : int, optional
-        Sampling interval, defaulting to 1. Currently not forwarded to
-        `read_data`, so this constructor argument has no effect. Pass it
-        directly to `read_data` to subsample rows.
 
     Attributes
     ----------
@@ -65,7 +61,7 @@ class MesaData:
 
     def __init__(self, history_file, *,
                  only_read_header=False, read_data=True, read_data_cols=None,
-                 clean_data=True, sample_every_n=1):
+                 clean_data=True):
         """Read file metadata and optionally load the requested columns."""
         if read_data_cols is None:
             read_data_cols = []
