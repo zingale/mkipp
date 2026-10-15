@@ -384,7 +384,7 @@ def kipp_plot(kipp_args, *,
             hatch = "//"
             line = 1
         # Overshooting
-        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
+`<        elif mixing_zones.mix_types[i] == 3 and kipp_args.show_over:
             label = "Overshooting"
             color = "purple"
             hatch = "x"
@@ -436,19 +436,22 @@ def kipp_plot(kipp_args, *,
         for core_mass in kipp_args.core_masses:
             if core_mass == "He":
                 field_name = "he_core_mass"
-                color = "b:"
+                color = "C0:"
             elif core_mass == "C":
                 field_name = "c_core_mass"
-                color = "r:"
+                color = "C1:"
             elif core_mass == "O":
                 field_name = "o_core_mass"
-                color = "g:"
+                color = "C2:"
             elif core_mass == "CO":
                 field_name = "co_core_mass"
-                color = "g:"
+                color = "C1:"
+            elif core_mass == "ONe":
+                field_name = "one_core_mass"
+                color = "C2:"
             elif core_mass == "Fe":
                 field_name = "fe_core_mass"
-                color = "m:"
+                color = "C3:"
             for history in mixing_zones.histories:
                 axis.plot(kipp_args.function_on_xaxis(history.get(kipp_args.xaxis) / xaxis_divide),
                           history.get(field_name), color)
