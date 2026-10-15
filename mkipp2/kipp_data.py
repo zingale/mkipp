@@ -295,7 +295,8 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
     Notes
     -----
     Each layer at sample i becomes a rectangle spanning samples i-1 to i.
-    Its upper boundary comes from ``mix_qtop_*`` or ``mix_relr_top_*``; its
+    Mass layers use ``mix_type_*`` and ``mix_qtop_*``; radius layers use
+    ``mix_relr_type_*`` and ``mix_relr_top_*``. Each layer's
     lower boundary is the preceding layer's top, or zero for the first layer.
     Layers with mixing codes 0 or -1, or below the thickness tolerance, are
     skipped. Adjacent layers with the same mixing code are joined through
@@ -310,6 +311,14 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
             xaxis_divide = 1e6
         elif kipp_args.time_units == "Gyr":
             xaxis_divide = 1e9
+
+    if kipp_args.yaxis == "radius":
+        type_prefix, top_prefix = "mix_relr_type_", "mix_relr_top_"
+    else:
+        type_prefix, top_prefix = "mix_type_", "mix_qtop_"
+
+    required = {"model_number", "star_age", "star_mass", "log_R", kipp_args.xaxis}
+    required.update(kipp_args.extra_history_cols)
 
     print("Reading history data")
     mix_data = []
@@ -330,17 +339,13 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
                 f"{str(reference_path)!r}: missing columns {missing}; extra columns {extra}. "
                 "All history files must have the same data column names."
             )
-        columns = []
-        for key in history.columns:
-            search_regex = "log_R|star_mass|model_number|star_age|.*core_mass|mix_type.*|"
-            for extra_col in kipp_args.extra_history_cols:
-                search_regex = search_regex + extra_col + "|"
-            if kipp_args.yaxis == "radius":
-                search_regex = search_regex + "mix_relr_top.*"
-            else:
-                search_regex = search_regex + "mix_qtop.*"
-            if re.search(search_regex, key):
-                columns.append(key)
+        columns = [
+            key for key in history.columns
+            if key in required or
+            key.endswith("core_mass") or
+            re.fullmatch(re.escape(type_prefix) + r"\d+", key) or
+            re.fullmatch(re.escape(top_prefix) + r"\d+", key)
+        ]
         history.read_data(columns, clean_data=kipp_args.clean_data)
         histories.append(history)
     x_coords = []
@@ -363,11 +368,8 @@ def get_mixing_zones(history_paths, kipp_args, xlims=None):
             mix_type = []
             mix_top = []
             for history in histories:
-                mix_type.extend(history.get('mix_type_' + str(mesa_mix_zones)))
-                if kipp_args.yaxis == "radius":
-                    mix_top.extend(history.get('mix_relr_top_' + str(mesa_mix_zones)))
-                else:
-                    mix_top.extend(history.get('mix_qtop_' + str(mesa_mix_zones)))
+                mix_type.extend(history.get(f"{type_prefix}{mesa_mix_zones}"))
+                mix_top.extend(history.get(f"{top_prefix}{mesa_mix_zones}"))
             mix_data.append([mix_type, mix_top])
         except Exception:
             # reached all mix zones included
