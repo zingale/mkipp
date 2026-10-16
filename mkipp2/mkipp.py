@@ -8,7 +8,7 @@ from collections import namedtuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import PathPatch
+from matplotlib.patches import Patch, PathPatch
 
 import mkipp2.kipp_data as kipp
 import mkipp2.mesa_data as md
@@ -247,6 +247,7 @@ def kipp_plot(kipp_args, *,
               log_levels=True,
               num_levels=8,
               show_mixing_legend=True,
+              show_core_mass_legend=True,
               show_plot=False,
               show_conv=True,
               show_therm=True,
@@ -266,8 +267,8 @@ def kipp_plot(kipp_args, *,
         Axes on which to draw. If None, create a figure and axes.
     contour_colormap : matplotlib.colors.Colormap, optional
         Colormap for the filled contours. Defaults to ``'Blues'``.
-    core_masses : sequence of {'He', 'C', 'O'}, optional
-        Core masses to overlay when ``yaxis='mass'``. Defaults to all three;
+    core_masses : sequence of {'He', 'C', 'O', 'CO', 'ONe', 'Fe'}, optional
+        Core masses to overlay when ``yaxis='mass'``. Defaults to He, C, O;
         an empty sequence suppresses them.
     decorate_plot : bool, optional
         Add axis labels and a colorbar.  Default is True.
@@ -284,7 +285,9 @@ def kipp_plot(kipp_args, *,
         Display convection, thermohaline mixing, semiconvection, and
         overshooting boundaries, respectively. Each defaults to True.
     show_mixing_legend : bool, optional
-        Add a legend showing the mixing types.  Default is True.
+        Include mixing types in the first legend column. Default is True.
+    show_core_mass_legend : bool, optional
+        Include core-mass lines in the second legend column. Default is True.
     show_plot : bool, optional
         Call ``pyplot.show()`` after plotting. Default is False.
     show_rot : bool, optional
@@ -308,9 +311,12 @@ def kipp_plot(kipp_args, *,
     -----
     Mixing regions are drawn as unfilled, hatched patches over the profile
     contours. A white fill covers contours above the stellar surface, and
-    selected core masses are overlaid for a mass axis. Axis labels, a
-    colorbar, and a mixing legend are added only when ``decorate_plot`` is
-    True. Each displayed mixing type appears once in the legend.
+    selected core masses are overlaid for a mass axis. Axis labels and a
+    colorbar are added only when ``decorate_plot`` is True. Mixing and
+    core-mass legend entries are controlled independently by their respective
+    ``show_*_legend`` options. Each displayed type appears once in a shared
+    two-column legend, with mixing types first and core masses second.
+    When only one group is shown, the legend uses a single column.
 
     Display and file output use pyplot. In particular,
     ``save_file=True`` saves the current pyplot figure, which need not
@@ -421,6 +427,7 @@ def kipp_plot(kipp_args, *,
     axis.plot(mixing_zones.x_coords[:i], mixing_zones.y_coords[:i], "k-")
 
     # add core masses
+    core_mass_handles = {}
     if kipp_args.yaxis == "mass":
         field_name = ""
         for core_mass in core_masses:
@@ -443,14 +450,29 @@ def kipp_plot(kipp_args, *,
                 field_name = "fe_core_mass"
                 color = "C3:"
             for history in mixing_zones.histories:
-                axis.plot(kipp_args.function_on_xaxis(history.get(kipp_args.xaxis) / xaxis_divide),
-                          history.get(field_name), color)
+                core_line, = axis.plot(
+                    kipp_args.function_on_xaxis(history.get(kipp_args.xaxis) / xaxis_divide),
+                    history.get(field_name), color, lw=2, label=f"{core_mass} core")
+                core_mass_handles.setdefault(core_mass, core_line)
 
-    if show_mixing_legend:
-        if mixing_handles:
-            axis.legend(handles=[mixing_handles[key]
-                                 for key in sorted(mixing_handles)],
-                        loc="best", fontsize="small")
+    mixing_entries = ([mixing_handles[key] for key in sorted(mixing_handles)]
+                      if show_mixing_legend else [])
+    core_entries = list(core_mass_handles.values()) if show_core_mass_legend else []
+    rows = max(len(mixing_entries), len(core_entries))
+    if mixing_entries and core_entries:
+        # Matplotlib fills columns in order; pad to keep each group in its column.
+        handles = []
+        labels = []
+        for entries in (mixing_entries, core_entries):
+            handles.extend(entries)
+            labels.extend(entry.get_label() for entry in entries)
+            handles.extend(Patch(visible=False) for _ in range(rows - len(entries)))
+            labels.extend([""] * (rows - len(entries)))
+        axis.legend(handles=handles, labels=labels, ncol=2,
+                    loc="best", fontsize="small")
+    elif rows:
+        axis.legend(handles=mixing_entries or core_entries,
+                    loc="best", fontsize="small")
 
     if decorate_plot:
 
