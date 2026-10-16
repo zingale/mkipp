@@ -38,32 +38,44 @@ def get_levels_linear(lmin, lmax, n_levels):
 
 
 def get_levels_log(lmin, lmax, n_levels):
-    """Generate integer contour levels for logarithmic data.
+    """Generate evenly spaced contour levels for logarithmic data.
 
     Parameters
     ----------
     lmin : float
-        Minimum logarithmic data value; currently does not affect the result.
+        Minimum finite logarithmic data value.
     lmax : float
-        Maximum logarithmic data value.
+        Maximum finite logarithmic data value, at least ``lmin``.
     n_levels : int
-        Requested number of levels; currently unused.
+        Positive integer number of intervals.
 
     Returns
     -------
-    range
-        Integers from zero through ``int(lmax) + 1``, inclusive. The range
-        is empty if its upper bound is negative.
+    numpy.ndarray
+        ``n_levels + 1`` levels spanning the bounds rounded outward to
+        integers. A constant integer range expands by 0.5 on each side.
+
+    Raises
+    ------
+    ValueError
+        If the interval count is not a positive integer or the bounds
+        are not finite and ordered.
 
     Notes
     -----
     Input values are already logarithms. This function does not transform
     data or generate logarithmically spaced values in linear units.
     """
-    lmax = int(lmax)+1
-    lmin = int(round(lmin, 2))-1
-    levels = range(0, lmax+1)
-    return levels
+    if (isinstance(n_levels, (bool, np.bool_)) or
+            not isinstance(n_levels, (int, np.integer)) or n_levels < 1):
+        raise ValueError("n_levels must be a positive integer")
+    if not np.isfinite(lmin) or not np.isfinite(lmax) or lmax < lmin:
+        raise ValueError("contour bounds must be finite and ordered")
+    lo, hi = np.floor(lmin), np.ceil(lmax)
+    if lo == hi:
+        lo -= 0.5
+        hi += 0.5
+    return np.linspace(lo, hi, n_levels + 1)
 
 
 def default_extractor(identifier, log10_on_data, prof,
@@ -285,13 +297,13 @@ def kipp_plot(kipp_args, *,
         levels from the extracted data.
     level_style : str, optional
         If ``levels`` is not provided, then we can compute the levels
-        as "log" (evenly spaced ints in logarithmic data), "linear", or
+        as "log" (evenly spaced levels in already-logarithmic data), "linear", or
         "symmetric" (centered on zero, and adapting to data range).
         Default is "log" for most data, but "symmetric" for data that
         is diverging (like "net_nuclear_energy").
     num_levels : int, optional
-        Number of intervals used by the linear level generator. Defaults
-        to 8; the logarithmic level generator currently ignores this value.
+        Positive number of intervals used by the linear and logarithmic
+        level generators. Defaults to 8; ignored for symmetric levels.
     show_conv, show_therm, show_semi, show_over : bool, optional
         Display convection, thermohaline mixing, semiconvection, and
         overshooting boundaries, respectively. Each defaults to True.
@@ -373,9 +385,10 @@ def kipp_plot(kipp_args, *,
         # Get levels if undefined
         if len(levels) == 0:
             if level_style == "log":
-                levels = get_levels_log(np.nanmin(xyz_data.Z[:, :]),
-                                        np.nanmax(xyz_data.Z[:, :]),
-                                        num_levels)
+                finite = xyz_data.Z[np.isfinite(xyz_data.Z)]
+                if finite.size == 0:
+                    raise ValueError("no finite profile values available for contour levels")
+                levels = get_levels_log(finite.min(), finite.max(), num_levels)
             elif level_style == "linear":
                 levels = get_levels_linear(np.nanmin(xyz_data.Z[:, :]),
                                            np.nanmax(xyz_data.Z[:, :]),
