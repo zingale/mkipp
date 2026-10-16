@@ -230,8 +230,8 @@ single `KippArgs` object and calling `kipp_plot` on various subaxes
 import mkipp2
 import matplotlib.pyplot as plt
 
-fig = plt.figure(figsize=(8, 5), layout="constrained")
-spec = fig.add_gridspec(ncols=4, nrows=1, wspace=0.05, width_ratios=[5, 5, 5, 1])
+fig = plt.figure(figsize=(9, 5), layout="constrained")
+spec = fig.add_gridspec(ncols=4, nrows=1, wspace=0.05, width_ratios=[5, 4, 4, 1])
 ax1 = fig.add_subplot(spec[0, 0])
 ax2 = fig.add_subplot(spec[0, 1])
 ax3 = fig.add_subplot(spec[0, 2])
@@ -241,9 +241,11 @@ kipp_args = mkipp2.KippArgs(xaxis="star_age")
 mkipp2.kipp_plot(kipp_args, axis=ax1,
                  save_file=False, decorate_plot=False)
 mkipp2.kipp_plot(kipp_args, axis=ax2,
-                 save_file=False, decorate_plot=False, show_mixing_legend=False)
+                 save_file=False, decorate_plot=False,
+                 show_mixing_legend=False, show_core_mass_legend=False)
 kipp_plot = mkipp2.kipp_plot(kipp_args, axis=ax3,
-                             save_file=False, decorate_plot=False, show_mixing_legend=False)
+                             save_file=False, decorate_plot=False,
+                             show_mixing_legend=False, show_core_mass_legend=False)
 cbar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 cbar.set_label(r"$\log_{10}|\epsilon_{\rm nuc}|$")
 
