@@ -126,6 +126,8 @@ class KippArgs:
     log10_on_data : bool, optional
         Request logarithmic values from the extractor. Default is True.
         The default extractor computes ``log10(abs(data) + 1e-99)``.
+        Note: for special fields like "net_nuclear_energy", this is disabled
+        since the log is already taken.
     xaxis : {'model_number', 'star_age'}, optional
         Horizontal coordinate. Defaults to ``'model_number'``.
     xaxis_divide : float, optional
@@ -207,6 +209,10 @@ class KippArgs:
         self.extractor = extractor
         self.log10_on_data = log10_on_data
 
+        # override for fields where the log is done by MESA
+        if self.identifier == "net_nuclear_energy":
+            self.log10_on_data = False
+
         self.xaxis = xaxis
         self.xaxis_divide = xaxis_divide
         self.time_units = time_units
@@ -240,11 +246,11 @@ class KippArgs:
 
 def kipp_plot(kipp_args, *,
               axis=None,
-              contour_colormap=plt.get_cmap("Blues"),
+              contour_colormap=None,
               core_masses=None,
               decorate_plot=True,
               levels=None,
-              log_levels=True,
+              level_style=None,
               num_levels=8,
               show_mixing_legend=True,
               show_core_mass_legend=True,
@@ -266,7 +272,9 @@ def kipp_plot(kipp_args, *,
     axis : matplotlib.axes.Axes, optional
         Axes on which to draw. If None, create a figure and axes.
     contour_colormap : matplotlib.colors.Colormap, optional
-        Colormap for the filled contours. Defaults to ``'Blues'``.
+        Colormap for the filled contours. Defaults to ``'Blues'``
+        for most data.  For diverging fields, like ``'net_nuclear_energy'``,
+        the default is ``RdBu_r``.
     core_masses : sequence of {'He', 'C', 'O', 'CO', 'ONe', 'Fe'}, optional
         Core masses to overlay when ``yaxis='mass'``. Defaults to He, C, O;
         an empty sequence suppresses them.
@@ -275,9 +283,12 @@ def kipp_plot(kipp_args, *,
     levels : array_like, optional
         Explicit, increasing contour levels. If None or empty, generate
         levels from the extracted data.
-    log_levels : bool, optional
-        Use integer levels for logarithmic data when levels are generated.
-        Default is True. This setting does not transform the data.
+    level_style : str, optional
+        If ``levels`` is not provided, then we can compute the levels
+        as "log" (evenly spaced ints in logarithmic data), "linear", or
+        "symmetric" (centered on zero, and adapting to data range).
+        Default is "log" for most data, but "symmetric" for data that
+        is diverging (like "net_nuclear_energy").
     num_levels : int, optional
         Number of intervals used by the linear level generator. Defaults
         to 8; the logarithmic level generator currently ignores this value.
@@ -343,21 +354,38 @@ def kipp_plot(kipp_args, *,
     if levels is None:
         levels = []
 
+    if level_style is None:
+        level_style = "log"
+        if kipp_args.identifier == "net_nuclear_energy":
+            level_style = "symmetric"
+
     if core_masses is None:
         core_masses = ["He", "C", "O"]
+
+    if contour_colormap is None:
+        if kipp_args.identifier == "net_nuclear_energy":
+            contour_colormap = plt.get_cmap("RdBu_r")
+        else:
+            contour_colormap = plt.get_cmap("Blues")
 
     # only plot if there is data
     if xyz_data.Z.size > 0:
         # Get levels if undefined
         if len(levels) == 0:
-            if log_levels:
+            if level_style == "log":
                 levels = get_levels_log(np.nanmin(xyz_data.Z[:, :]),
                                         np.nanmax(xyz_data.Z[:, :]),
                                         num_levels)
-            else:
+            elif level_style == "linear":
                 levels = get_levels_linear(np.nanmin(xyz_data.Z[:, :]),
                                            np.nanmax(xyz_data.Z[:, :]),
                                            num_levels)
+            elif level_style == "symmetric":
+                data_limit = max(1, int(np.ceil(np.nanmax(np.abs(xyz_data.Z)))))
+                levels = np.arange(-data_limit, data_limit + 1)
+            else:
+                raise ValueError("invalid level_style")
+
         # make plot
         contour_plot = axis.contourf(xyz_data.X, xyz_data.Y, xyz_data.Z[:, :],
                                      cmap=contour_colormap,
@@ -478,7 +506,20 @@ def kipp_plot(kipp_args, *,
 
         # add colorbar
         cbar = plt.colorbar(contour_plot, pad=0.05)
-        cbar.set_label(kipp_args.identifier)
+
+        # use pretty labels if we know the field
+        label = kipp_args.identifier
+        if kipp_args.identifier == "net_nuclear_energy":
+            label = (r"$\mathrm{sgn}(\epsilon_{\rm net})\,"
+                     r"\log_{10}\max(1, |\epsilon_{\rm net}|)$"
+                     "\n" + r"$\epsilon_{\rm net}$ in erg g$^{-1}$ s$^{-1}$")
+        elif kipp_args.identifier == "eps_nuc":
+            if kipp_args.log10_on_data:
+                label = r"$\log_{10} |\epsilon_{\rm{nuc}}|$"
+            else:
+                label = r"$\epsilon_{\rm{nuc}}$"
+
+        cbar.set_label(label)
 
         # add axis labels
         if kipp_args.xaxis == "star_age":
