@@ -488,11 +488,14 @@ def kipp_plot(kipp_args, *,
         # use pretty labels if we know the field
         label = kipp_args.identifier
         if kipp_args.identifier == "net_nuclear_energy":
-            label =  (r"$\mathrm{sgn}(\epsilon_{\rm net})\,"
-                      r"\log_{10}\max(1, |\epsilon_{\rm net}|)$"
-                      "\n" + r"$\epsilon_{\rm net}$ in erg g$^{-1}$ s$^{-1}$")
+            label = (r"$\mathrm{sgn}(\epsilon_{\rm net})\,"
+                     r"\log_{10}\max(1, |\epsilon_{\rm net}|)$"
+                     "\n" + r"$\epsilon_{\rm net}$ in erg g$^{-1}$ s$^{-1}$")
         elif kipp_args.identifier == "eps_nuc":
-            label = r"$\epsilon_{\rm{nuc}}$"
+            if kipp_args.log10_on_data:
+                label = r"$\log_{10} |\epsilon_{\rm{nuc}}|$"
+            else:
+                label = r"$\epsilon_{\rm{nuc}}$"
 
         cbar.set_label(label)
 
