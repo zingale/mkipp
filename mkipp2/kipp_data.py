@@ -487,6 +487,9 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
     ------
     AssertionError
         If fewer than two profiles remain after header reading and selection.
+    RuntimeError
+        If a profile header or selected profile body cannot be read.
+        The exception identifies the file and preserves the original cause.
 
     Notes
     -----
@@ -537,10 +540,9 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
             else:
                 prof_include[i] = True
         except Exception as e:
-            print("Couldn't read profile " + profile_name, e)
+            raise RuntimeError(f"Couldn't read profile {profile_name}: {e}") from e
 
-    # Filter out profiles. This will also remove profiles that failed
-    # to load
+    # Filter out profiles outside the selected range and its neighbors.
     profile_paths = [pp for (pp, pi) in zip(profile_paths, prof_include) if pi]
     assert len(profile_paths) >= 2, (
         "At least 2 profiles are required after header reading and selection; "
@@ -580,7 +582,7 @@ def get_xyz_data(profile_paths, kipp_args, xlims=None):
             prof = md.MesaData(profile_name, read_data=False)
             prof.read_data(columns)
         except Exception as e:
-            print("Couldn't read profile " + profile_name, e)
+            raise RuntimeError(f"Couldn't read profile {profile_name}: {e}") from e
         x_coord = kipp_args.function_on_xaxis(prof.header[kipp_args.xaxis] / xaxis_divide)
         if x_coord < max_x_coord:
             print("Profiles are not increasing in X coordinate!!!")
