@@ -294,7 +294,8 @@ def kipp_plot(kipp_args, *,
         Add axis labels and a colorbar.  Default is True.
     levels : array_like, optional
         Explicit, increasing contour levels. If None or empty, generate
-        levels from the extracted data.
+        levels from the extracted data.  For some fields, like "eps_nuc",
+        we clip the data to show only values > 1.
     level_style : str, optional
         If ``levels`` is not provided, then we can compute the levels
         as "log" (evenly spaced levels in already-logarithmic data), "linear", or
@@ -388,7 +389,11 @@ def kipp_plot(kipp_args, *,
                 finite = xyz_data.Z[np.isfinite(xyz_data.Z)]
                 if finite.size == 0:
                     raise ValueError("no finite profile values available for contour levels")
-                levels = get_levels_log(finite.min(), finite.max(), num_levels)
+                lmin = finite.min()
+                # overrides for some fields here
+                if kipp_args.identifier == "eps_nuc":
+                    lmin = 0.0
+                levels = get_levels_log(lmin, finite.max(), num_levels)
             elif level_style == "linear":
                 levels = get_levels_linear(np.nanmin(xyz_data.Z[:, :]),
                                            np.nanmax(xyz_data.Z[:, :]),
