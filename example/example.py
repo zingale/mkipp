@@ -145,10 +145,13 @@ ax3 = fig.add_subplot(spec[0, 2])
 ax4 = fig.add_subplot(spec[0, 3])
 
 kipp_args = mkipp2.KippArgs(xaxis="star_age")
-mkipp2.kipp_plot(kipp_args, axis=ax1, save_file=False, decorate_plot=False)
-mkipp2.kipp_plot(kipp_args, axis=ax2, save_file=False, decorate_plot=False,
+mkipp2.kipp_plot(kipp_args, axis=ax1, num_levels=10,
+                 save_file=False, decorate_plot=False)
+mkipp2.kipp_plot(kipp_args, axis=ax2, num_levels=10,
+                 save_file=False, decorate_plot=False,
                  show_mixing_legend=False, show_core_mass_legend=False)
-kipp_plot = mkipp2.kipp_plot(kipp_args, axis=ax3, save_file=False, decorate_plot=False,
+kipp_plot = mkipp2.kipp_plot(kipp_args, axis=ax3, num_levels=10,
+                             save_file=False, decorate_plot=False,
                              show_mixing_legend=False, show_core_mass_legend=False)
 cbar = fig.colorbar(kipp_plot.contour_plot, cax=ax4)
 #cbar.ax.set_yticklabels(['0', '','2','','4','','6','','8',''])
